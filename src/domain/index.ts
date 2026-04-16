@@ -2,7 +2,7 @@
 export { Todo } from './Todo';
 
 // Repository Interface
-export type { TodoRepository } from './TodoRepository';
+export type { TodoRepository, TodoCounts } from './TodoRepository';
 
 // Value Objects
 export { TodoTitle } from './value-objects/TodoTitle';
