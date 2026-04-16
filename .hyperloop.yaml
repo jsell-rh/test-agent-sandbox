@@ -1,9 +1,9 @@
 target:
   base_branch: main
+  repo: jsell-rh/test-agent-sandbox
 
 runtime: local
 max_workers: 5
-repo: jsell-rh/test-agent-sandbox
 ambient:                     # required when runtime: ambient                                                                                            
   project_id: test-hyperloop                                                                                                                         
   acpctl: /home/jsell/bin/acpctl    
