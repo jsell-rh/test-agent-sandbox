@@ -1,0 +1,10 @@
+apiVersion: hyperloop.io/v1
+kind: Process
+metadata:
+  name: default
+pipeline:
+  - loop:
+      - role: implementer
+      - role: verifier
+  - gate: human-pr-approval
+  - action: merge-pr
