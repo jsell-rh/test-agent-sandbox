@@ -5,8 +5,10 @@ runtime: ambient
 max_workers: 5
 repo: jsell-rh/test-agent-sandbox
 ambient:                     # required when runtime: ambient                                                                                            
-  project_id: test                                                                                                                         
-  acpctl: /home/jsell/bin/acpctl            # path to acpctl binary      
+  project_id: test-hyperloop                                                                                                                         
+  acpctl: /home/jsell/bin/acpctl    
+  repo_url: https://github.com/jsell-rh/test-agent-sandbox  
+          # path to acpctl binary      
 
 merge:
   auto_merge: true
