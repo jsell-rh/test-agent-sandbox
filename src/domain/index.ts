@@ -7,7 +7,7 @@ export type { TodoRepository } from './TodoRepository';
 // Value Objects
 export { TodoTitle } from './value-objects/TodoTitle';
 export { TodoStatus } from './value-objects/TodoStatus';
-export { FilterCriteria } from './value-objects/FilterCriteria';
+export { FilterCriteria, DEFAULT_FILTER_CRITERIA } from './value-objects/FilterCriteria';
 export { Timestamp } from './value-objects/Timestamp';
 
 // Domain Events

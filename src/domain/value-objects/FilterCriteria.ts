@@ -1,12 +1,13 @@
 /**
- * A Value Object representing the view selection for listing Todos.
- * Used by the Application Layer only — never on the Aggregate itself.
- * Default value: all.
+ * Value Object (enumeration): the view selection used by the Application Layer.
  *
- * Spec-Ref: specs/domain-model.spec.md — Value Objects / FilterCriteria
+ * Used by the Application Layer only — never on the Aggregate itself.
+ * Default: `all`.
  */
 export enum FilterCriteria {
-  All = 'all',
-  Active = 'active',
-  Completed = 'completed',
+  all = 'all',
+  active = 'active',
+  completed = 'completed',
 }
+
+export const DEFAULT_FILTER_CRITERIA = FilterCriteria.all;
