@@ -3,7 +3,7 @@ target:
 
 runtime: ambient
 max_workers: 5
-
+repo: jsell-rh/test-agent-sandbox
 ambient:                     # required when runtime: ambient                                                                                            
   project_id: test                                                                                                                         
   acpctl: /home/jsell/bin/acpctl            # path to acpctl binary      
@@ -14,3 +14,8 @@ merge:
 
 observability:
   log_level: debug 
+  matrix:
+    homeserver: https://matrix.jsksell.com
+    registration_token_env: MATRIX_ACCESS_TOKEN
+    invite_user: "@jsell:matrix.jsksell.com"
+    verbose: true
