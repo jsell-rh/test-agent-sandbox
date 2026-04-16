@@ -9,6 +9,7 @@
     "build": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/jest": "^29.5.12",
     "@types/node": "^22.0.0",
     "@types/uuid": "^10.0.0",
@@ -17,6 +18,7 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "better-sqlite3": "^12.9.0",
     "uuid": "^10.0.0"
   }
 }
