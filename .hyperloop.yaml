@@ -1,0 +1,16 @@
+target:
+  base_branch: main
+
+runtime: ambient
+max_workers: 5
+
+ambient:                     # required when runtime: ambient                                                                                            
+  project_id: test                                                                                                                         
+  acpctl: /home/jsell/bin/acpctl            # path to acpctl binary      
+
+merge:
+  auto_merge: true
+  strategy: squash
+
+observability:
+  log_level: debug 
