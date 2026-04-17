@@ -4,7 +4,7 @@ title: UI Shell — SPA Setup, Initial Data Load, Todo List Rendering
 spec_ref: specs/interface.spec.md
 status: not-started
 phase: null
-deps: [task-007, task-008]
+deps: [task-007, task-008, task-012, task-013]
 round: 0
 branch: null
 pr: null
