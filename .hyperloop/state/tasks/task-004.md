@@ -3,7 +3,7 @@ id: task-004
 title: SQLite database connection management and configuration
 spec_ref: specs/persistence.spec.md
 status: in-progress
-phase: human-pr-approval
+phase: rebase-resolver
 deps: []
 round: 0
 branch: hyperloop/task-004
