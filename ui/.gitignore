@@ -1,0 +1,27 @@
+# Nuxt build output
+.nuxt
+.output
+dist
+.cache
+
+# Node modules
+node_modules
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS / Editor artifacts
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/settings.json
+
+# Test coverage
+coverage
+.nyc_output
+
+# TypeScript build info
+*.tsbuildinfo
