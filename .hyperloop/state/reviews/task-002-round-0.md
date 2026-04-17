@@ -1,47 +1,53 @@
 ---
 task_id: task-002
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 findings: 0
 ---
 
-## Summary
+All checks pass.
 
-Implemented the Domain Events layer for the Todo Management bounded context, building on task-001.
+## Verification Summary
 
-### What was done
+### Tests
 
-1. **Merged task-001** — brought in the complete domain model foundation (Todo aggregate, value objects, errors, repository interface, and initial domain event classes).
+54 tests pass across 3 suites (0 failures, 0 skipped):
 
-2. **Verified domain event implementations** against the spec:
-   - `DomainEvent` interface: `eventName` + `occurredAt` (ISO 8601 UTC)
-   - `TodoCreated { todoId, title, occurredAt }` — emitted by `Todo.create()`
-   - `TodoCompleted { todoId, occurredAt }` — emitted by `todo.complete()`
-   - `TodoReopened { todoId, occurredAt }` — emitted by `todo.reopen()`
-   - `TodoTitleUpdated { todoId, newTitle, occurredAt }` — emitted by `todo.updateTitle()`
-   - `TodoDeleted { todoId, occurredAt }` — emitted by `todo.delete()`
-   - All event names match the Ubiquitous Language exactly.
+- `DomainEvents.test.ts` — 23 tests (new in task-002)
+- `Todo.test.ts` — 22 tests (from task-001)
+- `TodoTitle.test.ts` — 9 tests (from task-001)
 
-3. **Added dedicated domain event test suite** (`src/domain/__tests__/DomainEvents.test.ts`) with 23 new tests covering:
-   - Each event class satisfies the `DomainEvent` interface
-   - Correct `eventName` literal for each event type
-   - All structural fields (`todoId`, `title`, `newTitle`) present and correct
-   - Valid ISO 8601 `occurredAt` timestamp on each event
-   - Field value preservation (immutable record semantics)
+### Spec Compliance
 
-### Test results
+All Domain Event requirements from `specs/domain-model.spec.md` are satisfied:
 
-- **54 tests passing** across 3 test suites (0 failures, 0 skips)
-  - `DomainEvents.test.ts`: 23 tests (new)
-  - `Todo.test.ts`: 22 tests (from task-001)
-  - `TodoTitle.test.ts`: 9 tests (from task-001)
+| Requirement | Status |
+|---|---|
+| `DomainEvent` interface: `eventName` + `occurredAt` | ✅ |
+| `TodoCreated { todoId, title, occurredAt }` | ✅ |
+| `TodoCompleted { todoId, occurredAt }` | ✅ |
+| `TodoReopened { todoId, occurredAt }` | ✅ |
+| `TodoTitleUpdated { todoId, newTitle, occurredAt }` | ✅ |
+| `TodoDeleted { todoId, occurredAt }` | ✅ |
+| `eventName` literals match Ubiquitous Language verbatim | ✅ |
+| Events are immutable records (`readonly` properties) | ✅ |
+| `occurredAt` is a valid ISO 8601 UTC timestamp | ✅ |
 
-### Spec compliance
+### Commit Trailers
 
-All domain event invariants from `specs/domain-model.spec.md` are satisfied:
-- Events are immutable records (TypeScript `readonly` properties)
-- Events carry `todoId` and `occurredAt` at minimum
-- `TodoCreated` additionally carries `title`
-- `TodoTitleUpdated` additionally carries `newTitle`
-- `eventName` literals match the Ubiquitous Language terms verbatim
+- `Spec-Ref: specs/domain-model.spec.md` — present ✅
+- `Task-Ref: task-002` — present ✅
+
+### Check Scripts
+
+No `.hyperloop/checks/` directory exists; no scripts to run.
+
+### Diff Review
+
+The task-002 commit adds exactly two files:
+
+1. `src/domain/__tests__/DomainEvents.test.ts` — dedicated event test suite with full per-class coverage (interface satisfaction, `eventName` literal, structural fields, ISO 8601 timestamp, immutable record semantics).
+2. `.hyperloop/state/reviews/task-002-round-0.md` — implementer self-assessment.
+
+No production source was modified in the task-002 commit; the event implementations were delivered by task-001 (merged via `hyperloop/task-001`). The test suite exercises those implementations directly and confirms they satisfy the spec.
