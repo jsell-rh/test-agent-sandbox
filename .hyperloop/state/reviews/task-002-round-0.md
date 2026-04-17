@@ -1,63 +1,29 @@
 ---
 task_id: task-002
 round: 0
-role: verifier
+role: rebase-resolver
 verdict: pass
 findings: 0
 ---
 
-All checks pass.
+No conflicts to resolve. Branch `hyperloop/task-002` is already based on current trunk HEAD (main at f2222e94).
 
-## Verification Summary
+## Rebase Summary
 
-### Test Suite
-54 tests across 3 suites — all green.
-- `DomainEvents.test.ts` — 23 tests
-- `Todo.test.ts` — 22 tests
-- `TodoTitle.test.ts` — 9 tests
+**Trunk HEAD**: `f2222e9` — `orchestrator: pre-merge state`
 
-### TypeScript
-`npx tsc --noEmit` — clean, no errors.
+**Merge base check**: `git merge-base main hyperloop/task-002` returned `f2222e94` — identical to main HEAD, so no rebase was needed.
 
-### Check Scripts
-No `.hyperloop/checks/` scripts present — not applicable.
+**Conflict markers**: None found in `src/` — working tree was clean.
 
-### Commit Trailers
-Implementation commit `3202c84` carries:
-- `Spec-Ref: specs/domain-model.spec.md` ✓
-- `Task-Ref: task-002` ✓
+**Test suite**: 54 tests across 3 suites — all green.
 
-### Spec Coverage (task-002: Domain Events)
+```
+PASS src/domain/__tests__/DomainEvents.test.ts
+PASS src/domain/__tests__/Todo.test.ts
+PASS src/domain/__tests__/TodoTitle.test.ts
 
-**Domain Event classes** — all 5 implemented per Ubiquitous Language:
-- `TodoCreated` — `eventName: 'TodoCreated'`, fields: `todoId`, `title`, `occurredAt` ✓
-- `TodoCompleted` — `eventName: 'TodoCompleted'`, fields: `todoId`, `occurredAt` ✓
-- `TodoReopened` — `eventName: 'TodoReopened'`, fields: `todoId`, `occurredAt` ✓
-- `TodoTitleUpdated` — `eventName: 'TodoTitleUpdated'`, fields: `todoId`, `newTitle`, `occurredAt` ✓
-- `TodoDeleted` — `eventName: 'TodoDeleted'`, fields: `todoId`, `occurredAt` ✓
+Tests:       54 passed, 54 total
+```
 
-**DomainEvent base interface** — `eventName` and `occurredAt` as readonly strings ✓
-
-**Immutability** — all event fields declared `readonly`; constructor params are `readonly` ✓
-
-**occurredAt** — ISO 8601 UTC string (from `Timestamp.now().value`) ✓
-
-**Emission points** — events emitted at the correct state-change points in the Aggregate:
-- `Todo.create()` emits `TodoCreated` ✓
-- `todo.complete()` emits `TodoCompleted` only on first transition (idempotent no-op if already completed) ✓
-- `todo.reopen()` emits `TodoReopened` only on first transition (idempotent no-op if already active) ✓
-- `todo.updateTitle()` emits `TodoTitleUpdated` ✓
-- `todo.delete()` emits `TodoDeleted` ✓
-
-**No Domain Services** — all event emission logic lives inside the `Todo` Aggregate ✓
-
-**Repository interface** — `TodoRepository` contract defined in domain layer ✓
-
-**Domain errors** — `InvalidTitleError` and `TodoNotFoundError` implemented ✓
-
-**TodoTitle invariants** — all 5 TDD cases satisfied:
-- Blank → `InvalidTitleError` ✓
-- Whitespace-only → `InvalidTitleError` ✓
-- 500-char → valid ✓
-- 501-char → `InvalidTitleError` ✓
-- Trimming before validation ✓
+Branch is ready to merge.
