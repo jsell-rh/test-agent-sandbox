@@ -16,13 +16,14 @@
   },
   "dependencies": {
     "@nuxt/content": "^3.4.0",
+    "better-sqlite3": "^12.9.0",
     "nuxt": "^4.0.0"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.0.0",
     "@nuxt/test-utils": "^3.15.4",
-    "@vue/test-utils": "^2.4.6",
     "@vitest/coverage-v8": "^2.1.0",
+    "@vue/test-utils": "^2.4.6",
     "eslint": "^9.0.0",
     "happy-dom": "^15.11.0",
     "typescript": "^5.7.0",
