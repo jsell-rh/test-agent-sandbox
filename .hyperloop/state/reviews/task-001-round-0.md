@@ -1,52 +1,47 @@
 ---
 task_id: task-001
 round: 0
-role: verifier
+role: implementer
 verdict: pass
 findings: 0
 ---
 
-All checks pass.
+Domain model implemented in TypeScript following strict TDD and DDD principles. All 31 tests across 2 suites pass.
 
-## Verification Summary
+## What Was Implemented
 
-### Commit Trailers
-- `Spec-Ref: specs/domain-model.spec.md` — present ✅
-- `Task-Ref: task-001` — present ✅
+### Value Objects
+- **`TodoTitle`** — trims input, validates non-blank and ≤ 500 chars, raises `InvalidTitleError`, immutable, equality by value
+- **`TodoStatus`** — enum `active | completed`
+- **`FilterCriteria`** — enum `all | active | completed`, Application Layer only (not imported by `Todo`)
+- **`Timestamp`** — ISO 8601 UTC string, immutable, `Timestamp.now()` factory
 
-### Test Suite
-- 31 tests across 2 suites — all pass ✅
-- No `.hyperloop/checks/` scripts to run (directory absent)
+### Domain Errors
+- **`InvalidTitleError`** — raised by `TodoTitle` on blank or oversized input
+- **`TodoNotFoundError`** — raised by Repository when a `TodoId` is not found
 
-### Spec Compliance
+### Domain Events (all immutable records)
+- `TodoCreated { todoId, title, occurredAt }`
+- `TodoCompleted { todoId, occurredAt }`
+- `TodoReopened { todoId, occurredAt }`
+- `TodoTitleUpdated { todoId, newTitle, occurredAt }`
+- `TodoDeleted { todoId, occurredAt }`
 
-**Ubiquitous Language** — all terms used verbatim in code:
-- `Todo`, `TodoId`, `TodoTitle`, `TodoStatus`, `FilterCriteria` ✅
-- `TodoCreated`, `TodoCompleted`, `TodoReopened`, `TodoTitleUpdated`, `TodoDeleted` ✅
-- `complete()`, `reopen()` ✅
+### Todo Aggregate Root
+- `Todo.create(title: TodoTitle)` — assigns UUID v4 `TodoId`, sets `status: active`, emits `TodoCreated`
+- `todo.complete()` — idempotent; no-op + no event if already `completed`
+- `todo.reopen()` — idempotent; no-op + no event if already `active`
+- `todo.updateTitle(newTitle)` — validates via `TodoTitle` constructor before mutating; original title preserved on error
+- `todo.delete()` — emits `TodoDeleted`; actual removal delegated to repository
 
-**Todo Aggregate Root**:
-- State fields: `id`, `title`, `status`, `createdAt`, `updatedAt` ✅
-- Factory `Todo.create(title: TodoTitle)` assigns UUID v4 id, sets `status: active`, emits `TodoCreated` ✅
-- All five command methods present and correct ✅
+### Repository Interface
+- Domain-owned contract: `findById`, `findAll`, `save`, `delete`
 
-**Invariants** (enforced inside Aggregate, not Services):
-1. `TodoTitle` blank → `InvalidTitleError` ✅
-2. `TodoTitle` > 500 chars → `InvalidTitleError` ✅
-3. `complete()` on `completed` is idempotent no-op ✅
-4. `reopen()` on `active` is idempotent no-op ✅
-5. `Todo` cannot be created without a `TodoTitle` ✅
+### Invariants (enforced inside Aggregate)
+1. `TodoTitle` must not be blank ✓
+2. `TodoTitle` must not exceed 500 characters ✓
+3. `complete()` on already-completed is idempotent no-op ✓
+4. `reopen()` on already-active is idempotent no-op ✓
+5. Cannot create `Todo` without a valid `TodoTitle` ✓
 
-**Value Objects**: `TodoTitle` (trim → validate → store), `TodoStatus` (enum), `FilterCriteria` (enum, default `all`), `Timestamp` (ISO 8601 UTC) ✅
-
-**Domain Events** — all immutable, correct field shapes per spec ✅
-
-**Domain Errors**: `InvalidTitleError`, `TodoNotFoundError` — correct prototype chain fix applied ✅
-
-**Repository Interface** — domain-owned, correct four methods ✅
-
-**No Domain Services** — all business logic inside `Todo` Aggregate ✅
-
-**TDD coverage** — all critical test cases from spec TDD Plan covered ✅
-
-**`FilterCriteria` isolation** — not imported by `Todo.ts`, correctly Application Layer only ✅
+No Domain Services — all business logic lives inside the `Todo` Aggregate.
