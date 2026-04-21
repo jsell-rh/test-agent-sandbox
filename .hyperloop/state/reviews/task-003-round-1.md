@@ -1,54 +1,73 @@
 ---
 task_id: task-003
 round: 1
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-## Summary
+All checks pass.
 
-Resolved rebase conflicts between `hyperloop/task-003` and `main`, then repaired a post-rebase breakage caused by enum naming inconsistency.
+## Verification Steps
 
-### What was done
+### 1. Branch
+On `hyperloop/task-003`. ✓
 
-**Rebase onto main**
+### 2. Diff reviewed
+`git diff main...HEAD` covers the original implementation plus the round-1 rebase fix:
 
-The branch had diverged from `main` due to PRs #15 (domain value objects) and #16 (domain errors) being merged while the branch was in flight. Conflicts existed in:
+**Rebase resolution** (26 files, +1225 / -75):
+- `src/domain/value-objects/TodoStatus.ts` — enum members updated to PascalCase (`Active`, `Completed`); string values remain `'active'` / `'completed'` ✓
+- `src/domain/value-objects/FilterCriteria.ts` — enum members updated to PascalCase (`All`, `Active`, `Completed`); `DEFAULT_FILTER_CRITERIA` removed (not required by spec) ✓
+- `src/domain/Todo.ts` / `src/domain/__tests__/Todo.test.ts` — all `TodoStatus.active` / `TodoStatus.completed` references updated to `TodoStatus.Active` / `TodoStatus.Completed` ✓
+- `src/domain/index.ts` — stale `DEFAULT_FILTER_CRITERIA` re-export removed ✓
+- All aggregate, value object, event, error, and repository files retained correctly ✓
 
-- `.gitignore` — resolved by keeping `coverage/` and `*.js.map` entries (main's version).
-- `.hyperloop/state/reviews/task-003-round-0.md` — resolved by keeping the implementer's pass verdict from the branch.
-- `package.json` / `package-lock.json` — resolved by keeping main's version (name `todo-domain`, includes `uuid` dependency).
-- `src/domain/errors/InvalidTitleError.ts` / `TodoNotFoundError.ts` — resolved by keeping the branch's version (includes `Spec-Ref` comment).
-- `src/domain/value-objects/FilterCriteria.ts` — resolved by keeping the branch's version (capitalized enum members `All`, `Active`, `Completed`; no `DEFAULT_FILTER_CRITERIA`).
-- `src/domain/value-objects/Timestamp.ts` — resolved by keeping the branch's version (public constructor, no `static from()`).
-- `src/domain/value-objects/TodoStatus.ts` — resolved by keeping the branch's version (capitalized members `Active`, `Completed`).
-- `src/domain/value-objects/TodoTitle.ts` — resolved by keeping the branch's version (`static readonly MAX_LENGTH`).
-
-**Post-rebase fix**
-
-After the rebase, `src/domain/Todo.ts` (the root-level aggregate from main) and `src/domain/__tests__/Todo.test.ts` still referenced `TodoStatus.active` / `TodoStatus.completed` (lowercase), which no longer existed after the enum was unified to PascalCase. Fixed by updating all references to `TodoStatus.Active` / `TodoStatus.Completed`. Also removed the stale `DEFAULT_FILTER_CRITERIA` re-export from `src/domain/index.ts`.
-
-### Test results
+### 3. Test suite
 
 ```
 Test Suites: 11 passed, 11 total
 Tests:       164 passed, 164 total
+Snapshots:   0 total
+Time:        ~1.5 s
 ```
 
-`tsc --noEmit` exits cleanly.
+All spec TDD plan cases confirmed present and passing:
 
-### Spec coverage
+**TodoTitle**: blank → `InvalidTitleError` ✓, whitespace-only → `InvalidTitleError` ✓, 500-char boundary valid ✓, 501-char → `InvalidTitleError` ✓, trimming before validation ✓
 
-All domain model requirements from `specs/domain-model.spec.md` remain fully implemented and tested:
+**Todo.create()**: status is `active` ✓, non-null `TodoId` assigned ✓, exactly one `TodoCreated` emitted ✓, `InvalidTitleError` on blank title ✓
 
-| Area | Status |
-|---|---|
-| `TodoTitle` validation invariants | ✅ |
-| `Todo.create()` factory | ✅ |
-| `todo.complete()` idempotency | ✅ |
-| `todo.reopen()` idempotency | ✅ |
-| `todo.updateTitle()` | ✅ |
-| `todo.delete()` | ✅ |
-| All 5 Domain Events | ✅ |
-| `InvalidTitleError` / `TodoNotFoundError` | ✅ |
-| `TodoRepository` interface | ✅ |
+**todo.complete()**: `active` → `completed` ✓, `TodoCompleted` emitted ✓, idempotent no-op on already-completed (no event) ✓
+
+**todo.reopen()**: `completed` → `active` ✓, `TodoReopened` emitted ✓, idempotent no-op on already-active (no event) ✓
+
+**todo.updateTitle()**: title updated ✓, `TodoTitleUpdated` emitted ✓, `InvalidTitleError` on invalid new title ✓, original title preserved on failure ✓
+
+### 4. TypeScript type check
+`tsc --noEmit` exits cleanly (strict mode). ✓
+
+### 5. Check scripts
+`.hyperloop/checks/` is empty — no check scripts to run. ✓
+
+### 6. Commit trailers
+
+All implementation and fix commits carry both required trailers:
+
+| Commit | Spec-Ref | Task-Ref |
+|---|---|---|
+| `aeea9da` feat(domain-errors) | ✓ | ✓ |
+| `05d05c2` feat(domain-model) | ✓ | ✓ |
+| `374ffb1` fix(domain-model) rebase enum fix | ✓ | ✓ |
+| `d9fa8a5` review implementer pass | ✓ | ✓ |
+
+### 7. Spec compliance
+
+- Ubiquitous language used verbatim in class/method names ✓
+- `TodoStatus` / `FilterCriteria` PascalCase member names are a TypeScript convention; runtime string values (`'active'`, `'completed'`, `'all'`) match the spec exactly ✓
+- All five domain events have correct fields (`todoId`, `title`/`newTitle` where applicable, `occurredAt`) ✓
+- All aggregate invariants enforced inside the Aggregate, not in a service layer ✓
+- `Todo.create()` factory assigns UUID v4 `TodoId`, sets `status` to `active`, emits `TodoCreated` ✓
+- `complete()` and `reopen()` are idempotent with no duplicate events ✓
+- `TodoRepository` interface matches spec contract (`findById`, `findAll`, `save`, `delete`) ✓
+- No Domain Services — all logic inside the `Todo` aggregate ✓
+- `InvalidTitleError` and `TodoNotFoundError` extend `Error` with prototype chain preserved ✓
