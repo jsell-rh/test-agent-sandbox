@@ -16,6 +16,7 @@ REQUIRED_SCRIPTS=(
   "check-deps.sh"
   "check-task-meta.sh"
   "check-timer-tests.sh"
+  "check-rebase-clean.sh"
 )
 
 all_ok=true
