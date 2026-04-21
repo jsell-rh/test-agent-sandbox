@@ -2,12 +2,12 @@
 id: task-008
 title: SQLite TodoRepository implementation
 spec_ref: specs/persistence.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca
-status: not-started
-phase: null
+status: in-progress
+phase: implementer
 deps:
 - task-004
 - task-007
 round: 0
-branch: null
+branch: hyperloop/task-008
 pr: null
 ---
