@@ -19,6 +19,7 @@ REQUIRED_SCRIPTS=(
   "check-timer-tests.sh"
   "check-rebase-clean.sh"
   "check-rebase-state.sh"
+  "check-rebase-diagnostics.sh"
   "check-no-conflicts.sh"
   "check-merge-simulation.sh"
   "check-push-sync.sh"
