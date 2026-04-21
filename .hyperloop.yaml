@@ -1,6 +1,6 @@
 base_branch: main
 repo: jsell-rh/test-agent-sandbox
-
+max_cycles: 9999999
 runtime: local
 max_workers: 5
 ambient:                     # required when runtime: ambient                                                                                            
