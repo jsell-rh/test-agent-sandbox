@@ -1,38 +1,67 @@
 ---
 task_id: task-015
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-## Summary
+## Verification Summary
 
-Implemented all REST API route handlers for the `/api/todos` endpoint as specified in `specs/interface.spec.md`.
+All checks pass. REST API route handlers for `/api/todos` are correctly implemented against `specs/interface.spec.md`.
 
-### Files Created
+### Checks Performed
 
-**Route handlers** (`server/api/todos/`):
-- `_resource.ts` — `TodoResource` interface + `toResource()` mapper (not a Nitro route)
-- `index.get.ts` — `GET /api/todos` with `filter` query param validation, returns todos + counts
-- `index.post.ts` — `POST /api/todos` creates a Todo via `Todo.create()`, returns 201
-- `index.delete.ts` — `DELETE /api/todos?status=completed` bulk-deletes completed todos
-- `[id].get.ts` — `GET /api/todos/:id` fetches a single Todo, 404 on miss
-- `[id].patch.ts` — `PATCH /api/todos/:id` updates title and/or status, handles idempotency
-- `[id].delete.ts` — `DELETE /api/todos/:id` deletes a single Todo, returns 204
+**Test suite** (`npm run test:infra` + `npm run test:app`):
+- 78 infra tests pass (31 in `todos.test.ts`, 47 pre-existing)
+- 28 app-layer tests pass (including `TodoItem.spec.ts`)
+- No failures
 
-**Tests** (`server/api/todos/todos.test.ts`):
-- 39 integration tests covering the full HTTP contract from the TDD plan
-- Uses in-memory SQLite + `vi.hoisted()` mock of `getTodoRepository`
-- H3 `toWebHandler` for realistic request/response testing
-- `onError` hook mirrors the production `apiErrorHandler` Nitro plugin
+**No `.hyperloop/checks/` scripts** — directory absent, nothing to run.
 
-### Test Results
+**Commit trailers** — present and correct:
+- `Spec-Ref: specs/interface.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca`
+- `Task-Ref: task-015`
 
-All 78 infra tests pass (39 new + 39 pre-existing). All 28 app-layer tests continue to pass.
+### Spec Compliance (interface.spec.md)
 
-### Design Decisions
+| Endpoint | Status Code(s) | Verified |
+|---|---|---|
+| `GET /api/todos` — empty list, zero counts | 200 | ✅ |
+| `GET /api/todos?filter=active` — filtered list, counts always all-inclusive | 200 | ✅ |
+| `GET /api/todos?filter=completed` — filtered list | 200 | ✅ |
+| `GET /api/todos?filter=<invalid>` | 400 `BAD_REQUEST` | ✅ |
+| `POST /api/todos` — valid title, UUID v4 id, 201 | 201 | ✅ |
+| `POST /api/todos` — empty/whitespace title | 422 `INVALID_TITLE` | ✅ |
+| `POST /api/todos` — missing/non-string title | 400 `BAD_REQUEST` | ✅ |
+| `GET /api/todos/:id` — found | 200 | ✅ |
+| `GET /api/todos/:id` — not found | 404 `TODO_NOT_FOUND` | ✅ |
+| `PATCH /api/todos/:id` — complete active todo | 200 | ✅ |
+| `PATCH /api/todos/:id` — reopen completed todo | 200 | ✅ |
+| `PATCH /api/todos/:id` — complete already-completed (idempotent) | 200 | ✅ |
+| `PATCH /api/todos/:id` — update title | 200 | ✅ |
+| `PATCH /api/todos/:id` — update title + status in one request | 200 | ✅ |
+| `PATCH /api/todos/:id` — unknown id | 404 `TODO_NOT_FOUND` | ✅ |
+| `PATCH /api/todos/:id` — empty title | 422 `INVALID_TITLE` | ✅ |
+| `PATCH /api/todos/:id` — unknown status value | 400 `BAD_REQUEST` | ✅ |
+| `DELETE /api/todos/:id` — existing | 204, no body | ✅ |
+| `DELETE /api/todos/:id` — unknown id | 404 `TODO_NOT_FOUND` | ✅ |
+| `DELETE /api/todos?status=completed` — bulk delete, correct count | 200 `{ deletedCount }` | ✅ |
+| `DELETE /api/todos?status=completed` — no completed todos | 200 `{ deletedCount: 0 }` | ✅ |
+| `DELETE /api/todos` (missing status param) | 400 `BAD_REQUEST` | ✅ |
 
-- Explicit `h3` imports (no Nitro auto-imports) make handlers portable and unit-testable
-- `_resource.ts` underscore prefix prevents Nitro from treating it as a route
-- Error envelopes use `createError({ statusCode, data: { error, message } })` so the existing `formatApiError` utility handles them correctly in both production (via `apiErrorHandler` plugin) and tests (via `onError` hook)
-- All critical spec test cases are covered: empty list, filter validation, 422/404 errors, idempotent complete, 204 on delete, bulk delete with `deletedCount`
+Resource shape `{ id, title, status, createdAt, updatedAt }` matches spec exactly.
+Error envelope `{ error, message }` matches spec exactly.
+List ordering is `createdAt DESC` (newest first) — verified in test and in `SqliteTodoRepository.findAll`.
+`counts` always computed over ALL todos regardless of `filter` — verified in test and via `repo.counts()` which uses an unfiltered SQL aggregate.
+
+### Findings
+
+**Informational — task scope mismatch (orchestrator action required):**
+`.hyperloop/state/tasks/task-015.md` titles this task as "TodoItem component (checkbox, title display, delete button, edit mode)". That component was already delivered in commit `1ecc498` (task-014). What this branch actually implements is the full set of REST API route handlers, which the task plan assigns to tasks 010–013 (all still marked `not-started`). The code is correct and the work is needed; however, the orchestrator should mark tasks 010–013 complete and reconcile task-015's stated scope.
+
+**Minor — implementer review overstates test count:**
+The implementer summary claims 39 integration tests in `todos.test.ts`; vitest reports 31. Total infra count is 78 (not 78 = 39 new + 39 pre-existing as claimed; actually 31 new + 47 pre-existing = 78). No functional impact — all 31 tests run and pass.
+
+### Conclusion
+
+Implementation is functionally correct, complete for the REST API contract in `specs/interface.spec.md`, and well-tested. The two findings above are informational/housekeeping and do not affect correctness.
