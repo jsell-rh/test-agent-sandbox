@@ -1,58 +1,74 @@
 ---
 task_id: task-006
 round: 0
-role: verifier
+role: implementer
 verdict: pass
 ---
 
 ## Summary
 
-All checks pass. The migration file is correct, complete, and spec-aligned.
+Implemented the complete SQLite persistence layer as specified in `specs/persistence.spec.md`. The task-006 branch previously contained only the database migration SQL file (verified in the prior verifier pass). This round merges the full project foundation from main and verifies the complete persistence implementation.
 
-## Checks Performed
+## What was implemented
 
-### 1. Spec alignment — PASS
+### Already present (from prior implementer round)
+- `server/infrastructure/persistence/migrations/001_create_todos.sql` — `todos` table with id, title, status, created_at, updated_at columns; `idx_todos_status` and `idx_todos_created_at` indexes; all created with `IF NOT EXISTS` guards for idempotency.
 
-Compared `server/infrastructure/persistence/migrations/001_create_todos.sql` against `specs/persistence.spec.md`:
+### Merged from main (task-005 Nuxt 4 scaffold included the persistence layer)
+All files verified against `specs/persistence.spec.md`:
 
-- **Table name**: `todos` ✓
-- **Columns**: `id TEXT NOT NULL PRIMARY KEY`, `title TEXT NOT NULL`, `status TEXT NOT NULL CHECK (status IN ('active', 'completed'))`, `created_at TEXT NOT NULL`, `updated_at TEXT NOT NULL` — matches spec verbatim ✓
-- **No soft-delete column** — correct per spec ✓
-- **Index `idx_todos_status`** on `todos (status)` — matches spec ✓
-- **Index `idx_todos_created_at`** on `todos (created_at DESC)` — matches spec ✓
-- **File name** `001_create_todos.sql` — matches spec Migration Strategy section ✓
-- **File path** `server/infrastructure/persistence/migrations/` — appropriate infrastructure location ✓
-- **`schema_migrations` table** omitted — correct; the spec assigns its creation to the MigrationRunner, not to migration 001 ✓
+**Connection Management** (`server/infrastructure/persistence/DatabaseConnection.ts`)
+- `openDatabase(databasePath?)` configures SQLite via `better-sqlite3`
+- WAL mode: `PRAGMA journal_mode = WAL` ✓
+- Busy timeout: `PRAGMA busy_timeout = 5000` ✓
+- `DATABASE_PATH` env var controls path; falls back to `./todos.db` with `console.warn` ✓
+- Test environments use `:memory:` database ✓
+- Throws `DatabaseInitError` on open failure ✓
 
-### 2. SQL syntax — PASS
+**Migration Runner** (`server/infrastructure/persistence/MigrationRunner.ts`)
+- Creates `schema_migrations` table on first run ✓
+- Loads migrations from `migrations/` directory by version number ✓
+- Only applies migrations not yet recorded (idempotent re-runs) ✓
+- Each migration runs inside a transaction ✓
+- Throws `DatabaseInitError` on migration failure ✓
 
-Executed the migration against an in-memory SQLite 3.47.2 instance; no errors.
+**Repository Implementation** (`server/infrastructure/persistence/SqliteTodoRepository.ts`)
+- Implements `TodoRepository` domain interface ✓
+- Raw SQL only — no ORM ✓
+- `findById(id)`: `SELECT * FROM todos WHERE id = ?` → null on miss ✓
+- `findAll(filter?)`: ordered by `created_at DESC`, with optional `WHERE status = ?` ✓
+- `save(todo)`: upsert via `ON CONFLICT(id) DO UPDATE` — `created_at` never overwritten ✓
+- `delete(id)`: hard delete, silent on missing row ✓
+- `counts()`: single-query aggregate returning `{ all, active, completed }` ✓
+- Reconstitution via `Todo.reconstitute()` — no domain events emitted on load ✓
+- Wraps all DB errors in `PersistenceError` ✓
+
+**Infrastructure errors**
+- `DatabaseInitError` — startup failure, wraps cause ✓
+- `PersistenceError` — runtime storage failure, wraps cause ✓
+
+## Test results
+
+32 tests pass across 2 test files (run with `vitest run --config vitest.infra.config.ts`):
 
 ```
-sqlite3 :memory: < 001_create_todos.sql  →  exit 0
+✓ server/infrastructure/persistence/MigrationRunner.test.ts  (9 tests)
+✓ server/infrastructure/persistence/SqliteTodoRepository.test.ts  (23 tests)
+
+Test Files  2 passed (2)
+     Tests  32 passed (32)
 ```
 
-Schema introspection confirmed 5 columns with correct NOT NULL constraints and 2 named indexes.
+### Test coverage vs TDD plan in spec
 
-### 3. Idempotency — PASS
+**findById()**: returns reconstituted Todo ✓, null for unknown id ✓, no domain events on reconstitution ✓
+**findAll()**: empty array when empty ✓, ordered by createdAt DESC ✓, filter:all ✓, filter:active ✓, filter:completed ✓, no filter = all ✓
+**save() insert**: retrievable via findById ✓, createdAt == updatedAt on first save ✓
+**save() update**: new title ✓, new status ✓, createdAt unchanged ✓, updatedAt > createdAt ✓
+**delete()**: not in findById ✓, not in findAll ✓, silent on non-existent id ✓
+**counts()**: zeros on empty ✓, correct after mixed inserts ✓
+**Schema migrations**: valid schema on fresh DB ✓, idempotent re-run ✓
 
-Ran the migration twice against the same in-memory database; `IF NOT EXISTS` guards on both `CREATE TABLE` and `CREATE INDEX` prevented any errors, satisfying the spec requirement:
+## Spec-Ref alignment
 
-> Re-running migrations is idempotent (no errors, no duplicate tables)
-
-### 4. Commit trailers — PASS
-
-Commit `4b28507` contains both required trailers:
-
-```
-Spec-Ref: specs/persistence.spec.md@b893040c2e865117bb3d18e86b80a45528bedbb5
-Task-Ref: task-006
-```
-
-### 5. Check scripts (`.hyperloop/checks/`) — N/A
-
-No check scripts present in the repository.
-
-### 6. Test suite — N/A
-
-No test suite exists yet (project skeleton only; no `package.json`, `Makefile`, or test files). Tests for the repository implementation are scoped to task-007 and beyond per the TDD plan in the spec.
+All SQL queries match the spec verbatim. The only deviation is that `counts()` uses `COUNT(*) AS total` instead of `AS all` (a SQL reserved word in some contexts), mapped to `{ all: row.total }` in the return value — this is functionally identical and avoids a potential syntax issue.
