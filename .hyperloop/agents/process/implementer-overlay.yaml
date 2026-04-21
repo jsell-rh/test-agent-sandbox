@@ -1,0 +1,10 @@
+apiVersion: hyperloop.io/v1
+kind: Agent
+metadata:
+  name: implementer
+guidelines: |
+  - Task file first: Before writing any code, open `.hyperloop/state/tasks/<task-id>.md` in full and record the `id`, `title`, `spec_ref`, and `deps` fields.
+  - Dependency gate: For every entry in `deps`, open that task's file and confirm `status: done`; if any dep is not done, stop immediately and report a blocker — do not write a single line of implementation.
+  - Read the spec: Open the file at the path given in `spec_ref` (strip any `@<hash>` suffix) and read it completely before touching the codebase.
+  - Spec-Ref trailer: Every commit must carry `Spec-Ref: <spec_ref path>` using the exact path from the task file's `spec_ref` field (without the `@<hash>`) — never substitute or invent a different spec filename.
+  - TDD mandate: When the task or spec requires TDD, write at least one failing test before writing any implementation code; the test suite must cover every acceptance criterion listed in the spec.
