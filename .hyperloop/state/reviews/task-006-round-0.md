@@ -1,74 +1,80 @@
 ---
 task_id: task-006
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-## Summary
+## Verification Summary
 
-Implemented the complete SQLite persistence layer as specified in `specs/persistence.spec.md`. The task-006 branch previously contained only the database migration SQL file (verified in the prior verifier pass). This round merges the full project foundation from main and verifies the complete persistence implementation.
+All checks pass. The persistence layer implementation fully satisfies `specs/persistence.spec.md`.
 
-## What was implemented
+---
 
-### Already present (from prior implementer round)
-- `server/infrastructure/persistence/migrations/001_create_todos.sql` — `todos` table with id, title, status, created_at, updated_at columns; `idx_todos_status` and `idx_todos_created_at` indexes; all created with `IF NOT EXISTS` guards for idempotency.
+## Checklist
 
-### Merged from main (task-005 Nuxt 4 scaffold included the persistence layer)
-All files verified against `specs/persistence.spec.md`:
+### Schema (`001_create_todos.sql`)
+- [x] `todos` table columns match spec verbatim: `id`, `title`, `status`, `created_at`, `updated_at`
+- [x] `status` CHECK constraint enforces `'active' | 'completed'`
+- [x] TEXT used for UUID and timestamps (no SQLite type affinity dependencies)
+- [x] No soft-delete column — hard delete only
+- [x] `idx_todos_status ON todos (status)` created
+- [x] `idx_todos_created_at ON todos (created_at DESC)` created
+- [x] `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS` — idempotent re-runs safe
 
-**Connection Management** (`server/infrastructure/persistence/DatabaseConnection.ts`)
-- `openDatabase(databasePath?)` configures SQLite via `better-sqlite3`
-- WAL mode: `PRAGMA journal_mode = WAL` ✓
-- Busy timeout: `PRAGMA busy_timeout = 5000` ✓
-- `DATABASE_PATH` env var controls path; falls back to `./todos.db` with `console.warn` ✓
-- Test environments use `:memory:` database ✓
-- Throws `DatabaseInitError` on open failure ✓
+### Connection Management (`DatabaseConnection.ts`)
+- [x] `PRAGMA journal_mode = WAL` applied at open
+- [x] `PRAGMA busy_timeout = 5000` applied at open
+- [x] `DATABASE_PATH` env var controls path; falls back to `./todos.db` with `console.warn`
+- [x] Throws `DatabaseInitError` on open failure
 
-**Migration Runner** (`server/infrastructure/persistence/MigrationRunner.ts`)
-- Creates `schema_migrations` table on first run ✓
-- Loads migrations from `migrations/` directory by version number ✓
-- Only applies migrations not yet recorded (idempotent re-runs) ✓
-- Each migration runs inside a transaction ✓
-- Throws `DatabaseInitError` on migration failure ✓
+### Migration Runner (`MigrationRunner.ts`)
+- [x] Creates `schema_migrations` table on first run
+- [x] Reads versioned SQL files from `migrations/` directory
+- [x] Applies only unapplied migrations (idempotent)
+- [x] Each migration runs inside a transaction
+- [x] Throws `DatabaseInitError` on failure
 
-**Repository Implementation** (`server/infrastructure/persistence/SqliteTodoRepository.ts`)
-- Implements `TodoRepository` domain interface ✓
-- Raw SQL only — no ORM ✓
-- `findById(id)`: `SELECT * FROM todos WHERE id = ?` → null on miss ✓
-- `findAll(filter?)`: ordered by `created_at DESC`, with optional `WHERE status = ?` ✓
-- `save(todo)`: upsert via `ON CONFLICT(id) DO UPDATE` — `created_at` never overwritten ✓
-- `delete(id)`: hard delete, silent on missing row ✓
-- `counts()`: single-query aggregate returning `{ all, active, completed }` ✓
-- Reconstitution via `Todo.reconstitute()` — no domain events emitted on load ✓
-- Wraps all DB errors in `PersistenceError` ✓
+### Repository (`SqliteTodoRepository.ts`)
+- [x] Implements `TodoRepository` domain interface
+- [x] Raw SQL only — no ORM
+- [x] `findById`: `SELECT * FROM todos WHERE id = ?`, returns null on miss
+- [x] `findAll`: ordered by `created_at DESC`; `WHERE status = ?` when filter is active/completed
+- [x] `save`: upsert via `ON CONFLICT(id) DO UPDATE SET`; `created_at` excluded from DO UPDATE
+- [x] `delete`: hard delete, silent on missing row
+- [x] `counts`: single aggregate query; NULL coerced to 0 for empty table
+- [x] Reconstitution via `Todo.reconstitute()` — no domain events emitted
+- [x] Runtime errors wrapped in `PersistenceError`
 
-**Infrastructure errors**
-- `DatabaseInitError` — startup failure, wraps cause ✓
-- `PersistenceError` — runtime storage failure, wraps cause ✓
+### Error Types
+- [x] `DatabaseInitError` — startup/init failures
+- [x] `PersistenceError` — runtime storage failures
 
-## Test results
+### Tests
+- [x] `MigrationRunner.test.ts` — 9 tests, all pass
+- [x] `SqliteTodoRepository.test.ts` — 23 tests, all pass
+- [x] All TDD plan cases from spec covered: findById (3), findAll (5), save-insert (3), save-update (4), delete (3), counts (4), schema migrations (2 + extras)
+- [x] In-memory SQLite used for test isolation (no shared state, no file I/O)
 
-32 tests pass across 2 test files (run with `vitest run --config vitest.infra.config.ts`):
+### Commit Trailers
+- [x] `Spec-Ref` present on all implementation commits
+- [x] `Task-Ref: task-006` present on all implementation commits
 
+---
+
+## Notes
+
+**`counts()` SQL alias**: The implementation uses `COUNT(*) AS total` rather than `AS all` (a SQL reserved word in some contexts), then maps `row.total` → `{ all: ... }` in TypeScript. This is functionally identical to the spec and avoids a potential syntax pitfall.
+
+**`_rowToTodo` status mapping**: Uses a ternary that defaults non-completed values to `active`. Safe in practice because the `status` CHECK constraint guarantees only `'active'|'completed'` can be stored; this is not a correctness issue.
+
+**No `.hyperloop/checks/` directory**: No project check scripts exist; step skipped.
+
+**Test run output (verified locally)**:
 ```
-✓ server/infrastructure/persistence/MigrationRunner.test.ts  (9 tests)
-✓ server/infrastructure/persistence/SqliteTodoRepository.test.ts  (23 tests)
+ ✓ server/infrastructure/persistence/MigrationRunner.test.ts (9 tests) 9ms
+ ✓ server/infrastructure/persistence/SqliteTodoRepository.test.ts (23 tests) 39ms
 
-Test Files  2 passed (2)
-     Tests  32 passed (32)
+ Test Files  2 passed (2)
+      Tests  32 passed (32)
 ```
-
-### Test coverage vs TDD plan in spec
-
-**findById()**: returns reconstituted Todo ✓, null for unknown id ✓, no domain events on reconstitution ✓
-**findAll()**: empty array when empty ✓, ordered by createdAt DESC ✓, filter:all ✓, filter:active ✓, filter:completed ✓, no filter = all ✓
-**save() insert**: retrievable via findById ✓, createdAt == updatedAt on first save ✓
-**save() update**: new title ✓, new status ✓, createdAt unchanged ✓, updatedAt > createdAt ✓
-**delete()**: not in findById ✓, not in findAll ✓, silent on non-existent id ✓
-**counts()**: zeros on empty ✓, correct after mixed inserts ✓
-**Schema migrations**: valid schema on fresh DB ✓, idempotent re-run ✓
-
-## Spec-Ref alignment
-
-All SQL queries match the spec verbatim. The only deviation is that `counts()` uses `COUNT(*) AS total` instead of `AS all` (a SQL reserved word in some contexts), mapped to `{ all: row.total }` in the return value — this is functionally identical and avoids a potential syntax issue.
