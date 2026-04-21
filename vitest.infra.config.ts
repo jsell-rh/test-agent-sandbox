@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config'
+import { resolve } from 'node:path'
 
 /**
  * Vitest configuration for server-side infrastructure tests.
@@ -28,5 +29,8 @@ export default defineConfig({
   },
   resolve: {
     conditions: ['node'],
+    alias: {
+      '~': resolve(__dirname),
+    },
   },
 })
