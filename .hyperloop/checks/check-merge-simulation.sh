@@ -51,10 +51,14 @@ fi
 CONFLICT_OUTPUT=$(git merge-tree "$MERGE_BASE" "$BASE_COMMIT" "$HEAD_COMMIT" 2>&1 || true)
 
 # git merge-tree signals conflicts with lines containing conflict markers.
-if echo "$CONFLICT_OUTPUT" | grep -qE '^(<<<<<<<|=======|>>>>>>>)'; then
+# Do NOT anchor with ^ — some git versions emit markers with leading context
+# (e.g. after a diff header) so the anchored pattern produces false negatives.
+# This matches check-rebase-diagnostics.sh which intentionally omits ^ for the
+# same reason.
+if echo "$CONFLICT_OUTPUT" | grep -qE '(<<<<<<<|=======|>>>>>>>)'; then
   echo "ERROR: Merge simulation detected content conflicts between this branch and ${BASE}." >&2
   echo "Conflicted sections (excerpt):" >&2
-  echo "$CONFLICT_OUTPUT" | grep -E '^(<<<<<<<|=======|>>>>>>>|changed in both)' | head -20 >&2
+  echo "$CONFLICT_OUTPUT" | grep -E '(<<<<<<<|=======|>>>>>>>|changed in both)' | head -20 >&2
   echo "" >&2
   echo "Fix: git fetch origin && git rebase ${BASE}" >&2
   echo "     Resolve each conflict, git add <file>, git rebase --continue" >&2
