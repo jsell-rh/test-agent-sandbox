@@ -1,37 +1,46 @@
 ---
 task_id: task-013
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-Both DELETE endpoints are implemented, tested, and passing.
+All checks pass. The DELETE endpoints are correctly implemented, tested, and spec-compliant.
 
-## Summary
+## Verification Steps
 
-### Endpoints Implemented
+### 1. Code Review
 
-**`DELETE /api/todos/:id`** — `server/api/todos/[id].delete.ts`
-- Looks up the Todo by id via `repo.findById()`
-- Returns 404 `TODO_NOT_FOUND` if not found (spec-compliant error envelope)
-- Calls `todo.delete()` on the aggregate (domain command)
-- Calls `repo.delete(todo.id)` to persist the removal
-- Returns 204 with no body
+**`DELETE /api/todos/:id`** (`server/api/todos/[id].delete.ts`):
+- `repo.findById(id)` called; 404 `TODO_NOT_FOUND` returned if missing ✅
+- `todo.delete()` (domain command) invoked before `repo.delete(todo.id)` ✅
+- `setResponseStatus(event, 204)` + `return null` — correct 204 no-body response ✅
+- Error envelope format matches spec (`{ error, message }`) ✅
 
-**`DELETE /api/todos?status=completed`** — `server/api/todos/index.delete.ts`
-- Validates `?status=completed` query param; returns 400 `BAD_REQUEST` if missing or any other value
-- Retrieves all completed todos via `repo.findAll(FilterCriteria.completed)`
-- Deletes each in a loop via `repo.delete(todo.id)`
-- Returns `{ deletedCount: N }` with status 200
+**`DELETE /api/todos?status=completed`** (`server/api/todos/index.delete.ts`):
+- `query.status !== 'completed'` catches both missing and wrong-value cases → 400 `BAD_REQUEST` ✅
+- `repo.findAll(FilterCriteria.completed)` used for retrieval (no raw SQL) ✅
+- Deletes each completed todo in a loop ✅
+- Returns `{ deletedCount: completed.length }` with implicit 200 ✅
 
-### Test Coverage
+**Domain model** (`server/domain/Todo.ts`):
+- `Todo.delete()` emits `TodoDeleted` event and updates `_updatedAt` ✅
+- Properly separates intent (domain event) from persistence (repo.delete) ✅
 
-All spec-mandated test cases are present in `server/api/todos/todos.test.ts`:
+### 2. Test Suite
 
-| Scenario | Status |
+`npx nuxt prepare` required to generate `.nuxt/tsconfig.json` before tests can run (pre-existing worktree concern; not a defect in this task).
+
+After prepare:
+- `npx vitest run --config vitest.infra.config.ts` — **78 tests, 5 files, all passed** ✅
+- `npx vitest run` (app-layer) — **111 tests, 4 files, all passed** ✅
+
+All spec-mandated test cases from the TDD Plan are present and green:
+
+| Scenario | Result |
 |---|---|
 | Existing todo returns 204 | ✅ |
-| Deleted todo no longer retrievable | ✅ |
+| Deleted todo no longer retrievable (GET → 404) | ✅ |
 | Unknown id returns 404 TODO_NOT_FOUND | ✅ |
 | Deletes all completed; correct deletedCount | ✅ |
 | No completed todos → 200 with deletedCount: 0 | ✅ |
@@ -39,21 +48,21 @@ All spec-mandated test cases are present in `server/api/todos/todos.test.ts`:
 | Missing status param → 400 BAD_REQUEST | ✅ |
 | Unsupported status value → 400 BAD_REQUEST | ✅ |
 
-### Test Results
+### 3. Check Scripts
 
-- `npx vitest run --config vitest.infra.config.ts` — **78 tests, 5 files, all passed**
-  - `server/api/todos/todos.test.ts` — 31 tests
-  - `server/infrastructure/persistence/SqliteTodoRepository.test.ts` — 23 tests
-  - `server/infrastructure/persistence/MigrationRunner.test.ts` — 9 tests
-  - `server/utils/errorFormatter.test.ts` — 7 tests
-  - `server/utils/errors.test.ts` — 8 tests
-- `npx vitest run` (app-layer) — **111 tests, 4 files, all passed**
+No `.hyperloop/checks/` directory exists; step skipped.
 
-### Spec Compliance
+### 4. Commit Trailers
 
-- 204 response with null body for single DELETE ✅
-- 200 response with `{ deletedCount }` for bulk DELETE ✅
-- 400 `BAD_REQUEST` for unsupported `?status` values ✅
-- 404 `TODO_NOT_FOUND` follows the error envelope format ✅
-- Domain `todo.delete()` command invoked before persistence removal ✅
-- `FilterCriteria.completed` used for bulk retrieval (no raw SQL coupling) ✅
+HEAD commit `9ae11bd` contains:
+- `Spec-Ref: specs/interface.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca` ✅
+- `Task-Ref: task-013` ✅
+
+### 5. Spec Compliance
+
+All spec requirements from `specs/interface.spec.md` are met:
+- 204 (no body) for single delete ✅
+- 200 `{ deletedCount }` for bulk delete ✅
+- 400 `BAD_REQUEST` error envelope for unsupported query params ✅
+- 404 `TODO_NOT_FOUND` error envelope for unknown id ✅
+- Separation rule honoured: no business logic in Application Layer ✅
