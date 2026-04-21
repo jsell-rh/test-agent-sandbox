@@ -1,44 +1,42 @@
 ---
 task_id: task-001
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-Implemented the full domain model for the Todo application per `specs/domain-model.spec.md`.
+All checks pass.
 
-## What Was Done
+## Test Suite
 
-All domain model files were authored under `src/domain/` following DDD + TDD methodology:
+31 tests across 2 suites — all green (`npx jest --runInBand`):
+- `src/domain/__tests__/TodoTitle.test.ts` — 13 tests
+- `src/domain/__tests__/Todo.test.ts` — 18 tests
 
-### Aggregate Root
-- `src/domain/Todo.ts` — `Todo` aggregate root with factory `Todo.create(title)`, command methods `complete()`, `reopen()`, `updateTitle()`, `delete()`, and domain event accumulation/clearing.
+## TypeScript
 
-### Value Objects
-- `src/domain/value-objects/TodoTitle.ts` — validates non-blank, ≤500 chars, trims before validation, throws `InvalidTitleError`
-- `src/domain/value-objects/TodoStatus.ts` — enum `active | completed`
-- `src/domain/value-objects/FilterCriteria.ts` — enum `all | active | completed`, default exported
-- `src/domain/value-objects/Timestamp.ts` — ISO 8601 UTC, immutable
+`npx tsc --noEmit` — clean, no errors.
 
-### Domain Events
-- `src/domain/events/DomainEvent.ts` — base interface
-- `src/domain/events/TodoCreated.ts`, `TodoCompleted.ts`, `TodoReopened.ts`, `TodoTitleUpdated.ts`, `TodoDeleted.ts`
+## Check Scripts
 
-### Domain Errors
-- `src/domain/errors/InvalidTitleError.ts` — proper prototype chain
-- `src/domain/errors/TodoNotFoundError.ts` — proper prototype chain
+No `.hyperloop/checks/` directory present — nothing to run.
 
-### Repository Interface
-- `src/domain/TodoRepository.ts` — domain-owned contract: `findById`, `findAll`, `save`, `delete`
+## Commit Trailers
 
-### Tests
-- `src/domain/__tests__/TodoTitle.test.ts` — 13 tests covering all validation/equality/immutability cases
-- `src/domain/__tests__/Todo.test.ts` — 18 tests covering all aggregate lifecycle, invariants, and events
-
-## Test Results
-
-31 tests, 2 suites — all green (`npm test`).
+Implementation commit `2553aca` carries both required trailers:
+- `Spec-Ref: specs/domain-model.spec.md`
+- `Task-Ref: task-001`
 
 ## Spec Compliance
 
-All invariants enforced, all ubiquitous language terms present verbatim, no domain services (anemic model rejected), TDD critical cases covered.
+Verified against `specs/domain-model.spec.md`:
+
+- **Ubiquitous Language**: All terms (`Todo`, `TodoId`, `TodoTitle`, `TodoStatus`, `FilterCriteria`, `TodoCreated`, `TodoCompleted`, `TodoReopened`, `TodoTitleUpdated`, `TodoDeleted`, `complete()`, `reopen()`) present verbatim in code.
+- **Aggregate Root**: `Todo.create()` factory, all command methods (`complete`, `reopen`, `updateTitle`, `delete`), domain event accumulation/clearing — all present.
+- **Invariants**: All 5 invariants enforced inside the Aggregate (blank title, 500-char limit, idempotent `complete()`, idempotent `reopen()`, no titleless creation).
+- **Value Objects**: `TodoTitle` (trim + validate), `TodoStatus` (enum), `FilterCriteria` (enum with default `all`), `Timestamp` (ISO 8601, immutable) — all correct.
+- **Domain Events**: All 5 events (`TodoCreated`, `TodoCompleted`, `TodoReopened`, `TodoTitleUpdated`, `TodoDeleted`) implemented as immutable records with correct fields.
+- **Domain Errors**: `InvalidTitleError` and `TodoNotFoundError` with correct prototype chains.
+- **Repository Interface**: `TodoRepository` domain-owned interface with `findById`, `findAll`, `save`, `delete` — matches spec.
+- **No Domain Services**: Confirmed absent; all logic in the `Todo` Aggregate.
+- **TDD Critical Cases**: All spec-listed test cases (blank/whitespace/500-char/501-char titles, `Todo.create()` invariants, state transitions, idempotency, `updateTitle` error preservation) covered.
