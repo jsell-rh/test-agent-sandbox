@@ -1,5 +1,36 @@
 worktrees/
-node_modules/
+
+# Nuxt build output
+.nuxt/
+.output/
 dist/
+
+# Node
+node_modules/
+.pnpm-store/
+
+# Data — SQLite database files (never commit)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+todos.db
+todos.db-shm
+todos.db-wal
+*.db
+*.db-shm
+*.db-wal
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Editor
+.DS_Store
+.idea/
+*.swp
+*.swo
+
+# Test
 coverage/
 *.js.map
