@@ -12,6 +12,12 @@
 # failure, giving both implementers and verifiers a mechanical gate that prevents
 # further automated retry.
 #
+# IMPORTANT: review files are committed to main by the orchestrator, not to the
+# task branch.  When the task branch has not yet been rebased, local filesystem
+# access cannot see those files.  This script therefore checks BOTH the local
+# filesystem AND origin/main directly so the gate is never bypassed by a stale
+# local tree.
+#
 # Usage: TASK_ID=<id> bash .hyperloop/checks/check-orchestrator-multi-error.sh
 #
 # Exits 0: no multi-attempt orchestrator errors found in review history.
@@ -26,16 +32,42 @@ if [[ -z "$TASK_ID" ]]; then
 fi
 
 REVIEWS_DIR=".hyperloop/state/reviews"
-if [[ ! -d "$REVIEWS_DIR" ]]; then
-  echo "OK: No reviews directory found — skipping orchestrator multi-error check."
-  exit 0
+
+# Fetch so origin/main reflects the latest orchestrator writes.
+echo "Fetching origin to ensure review files from origin/main are current..."
+git fetch origin 2>/dev/null || echo "WARNING: git fetch failed; using cached origin/main."
+
+# Pattern that matches N ≥ 2 in "Action error after N attempts".
+# Covers single-digit (2-9) and multi-digit (10+) values.
+ERROR_PATTERN="Action error after ([2-9]|[0-9]{2,}) attempts"
+
+# --- Pass 1: local filesystem (works when task branch is rebased onto main) ---
+LOCAL_MATCHES=""
+if [[ -d "$REVIEWS_DIR" ]]; then
+  LOCAL_MATCHES=$(grep -rl \
+    -E "$ERROR_PATTERN" \
+    "$REVIEWS_DIR/" 2>/dev/null \
+    | grep "${TASK_ID}-round-" || true)
 fi
 
-# Match "Action error after N attempts" where N is 2 or any larger number.
-# Covers single-digit (2-9) and multi-digit (10+) values.
-MATCHES=$(grep -l \
-  -E "Action error after ([2-9]|[0-9]{2,}) attempts" \
-  "${REVIEWS_DIR}/${TASK_ID}-round-"*.md 2>/dev/null || true)
+# --- Pass 2: origin/main directly (catches files absent from the local tree) ---
+# Review files are written by the orchestrator to main.  If the task branch has
+# not yet been rebased, they will not appear in the local working tree.  Reading
+# them via "git show origin/main:<path>" bypasses this blind spot.
+ORIGIN_MATCHES=""
+if git rev-parse --verify origin/main >/dev/null 2>&1; then
+  while IFS= read -r fpath; do
+    if git show "origin/main:${fpath}" 2>/dev/null \
+        | grep -qE "$ERROR_PATTERN"; then
+      ORIGIN_MATCHES="${ORIGIN_MATCHES}${fpath}"$'\n'
+    fi
+  done < <(git ls-tree -r --name-only origin/main 2>/dev/null \
+           | grep -E "^${REVIEWS_DIR}/${TASK_ID}-round-[0-9]+\.md$" || true)
+fi
+
+# Merge results, deduplicate, drop empty lines.
+MATCHES=$(printf '%s\n' "$LOCAL_MATCHES" "$ORIGIN_MATCHES" \
+          | sort -u | grep -v '^[[:space:]]*$' || true)
 
 if [[ -n "$MATCHES" ]]; then
   echo "" >&2
@@ -49,6 +81,10 @@ if [[ -n "$MATCHES" ]]; then
   echo "  conflict the implementer can resolve locally.  A correctly rebased branch" >&2
   echo "  will fail the orchestrator's apply for exactly the same structural reason." >&2
   echo "" >&2
+  echo "  NOTE: the orchestrator always appends 'Please rebase onto main and resolve" >&2
+  echo "  the conflicts.' to every action-error message regardless of N.  This text" >&2
+  echo "  is auto-generated boilerplate — do NOT follow it when N ≥ 2." >&2
+  echo "" >&2
   echo "  REQUIRED ACTION (perform NO git operations):" >&2
   echo "    1. Run:  bash .hyperloop/checks/check-rebase-diagnostics.sh" >&2
   echo "    2. Paste its full output verbatim under a 'Rebase Diagnostics' heading." >&2
@@ -56,5 +92,5 @@ if [[ -n "$MATCHES" ]]; then
   exit 1
 fi
 
-echo "OK: No orchestrator multi-attempt errors in review history for '${TASK_ID}'."
+echo "OK: No orchestrator multi-attempt errors in review history for '${TASK_ID}' (checked local tree and origin/main)."
 exit 0
