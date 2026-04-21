@@ -6,6 +6,15 @@ pipeline:
   - loop:
       - agent: implementer
       - agent: verifier
-  - pr-require-approval:
-      type: pr-approval  
+  - gate: pr-require-approval
   - action: merge-pr
+
+gates:
+  pr-require-label:
+    type: label                         # label (configurable, default: lgtm)
+  pr-require-approval:               # alternative gate type
+    type: pr-approval   
+
+hooks:
+  after_reap:
+    - type: process-improver
