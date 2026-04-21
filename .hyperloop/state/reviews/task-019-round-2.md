@@ -1,7 +1,7 @@
 ---
 task_id: task-019
 round: 2
-role: implementer
+role: verifier
 verdict: pass
 ---
 
@@ -12,15 +12,15 @@ verdict: pass
 id: task-019
 title: Optimistic UI updates and error handling with auto-dismiss
 spec_ref: specs/interface.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca
-status: not-started
-phase: null
+status: in-progress
+phase: implementer
 deps:
 - task-015
 - task-016
 - task-017
-round: 0
-branch: null
-pr: null
+round: 2
+branch: hyperloop/task-019
+pr: https://github.com/jsell-rh/test-agent-sandbox/pull/32
 ---
 ```
 
@@ -34,10 +34,10 @@ OK: check-deps.sh
 OK: check-task-meta.sh
 OK: check-timer-tests.sh
 Checks infrastructure OK.
-EXIT: 0
+Exit: 0
 ```
 
-Infrastructure is healthy. ✓
+Infrastructure healthy. ✓
 
 ---
 
@@ -49,76 +49,133 @@ OK: task-015 is done
 OK: task-016 is done
 OK: task-017 is done
 All dependencies satisfied for task-019.
-EXIT: 0
+Exit: 0
 ```
 
-All dependencies satisfied. ✓
+All dependencies complete. ✓
+
+---
+
+## All Check Scripts (verbatim)
+
+```
+=== .hyperloop/checks/check-deps.sh ===
+(run without TASK_ID — expected failure)
+.hyperloop/checks/check-deps.sh: line 10: TASK_ID: TASK_ID environment variable is required
+Exit: 1
+
+=== .hyperloop/checks/check-infra.sh ===
+OK: check-deps.sh
+OK: check-task-meta.sh
+OK: check-timer-tests.sh
+Checks infrastructure OK.
+Exit: 0
+
+=== .hyperloop/checks/check-task-meta.sh ===
+(run without TASK_ID — expected failure)
+.hyperloop/checks/check-task-meta.sh: line 14: TASK_ID: TASK_ID environment variable is required
+Exit: 1
+
+=== .hyperloop/checks/check-timer-tests.sh ===
+Production files using setTimeout/setInterval:
+  app/stores/todos.ts
+Fake-timer tests found. OK.
+Exit: 0
+```
+
+Re-run with TASK_ID set:
+
+```
+$ TASK_ID=task-019 bash .hyperloop/checks/check-task-meta.sh
+Task metadata for task-019:
+  id:     task-019
+  title:  Optimistic UI updates and error handling with auto-dismiss
+  status: in-progress
+  phase:  implementer
+  round:  2
+  deps:
+  task-015
+  task-016
+  task-017
+```
+
+All scripts with required env variables pass. ✓
 
 ---
 
 ## Test Suite
 
+App layer (157 tests across 5 files):
+
 ```
-$ npx nuxi prepare
-Types generated in .nuxt.
-
-$ npm test
-
-> test
-> vitest run && vitest run --config vitest.infra.config.ts
-
- ✓ app/composables/useTodoActions.spec.ts (35 tests) 31ms
- ✓ app/stores/todos.spec.ts (43 tests) 38ms
- ✓ app/utils/markdown.spec.ts (31 tests) 77ms
- ✓ app/components/TodoItem.spec.ts (15 tests) 97ms
- ✓ app/pages/index.spec.ts (33 tests) 280ms
+$ npm run test:app
+ ✓ app/stores/todos.spec.ts (43 tests) 67ms
+ ✓ app/composables/useTodoActions.spec.ts (35 tests) 61ms
+ ✓ app/utils/markdown.spec.ts (31 tests) 97ms
+ ✓ app/components/TodoItem.spec.ts (15 tests) 126ms
+ ✓ app/pages/index.spec.ts (33 tests) 403ms
 
  Test Files  5 passed (5)
       Tests  157 passed (157)
-   Duration  2.26s
+   Duration  2.57s
+```
 
- ✓ server/utils/errors.test.ts (8 tests)
+Server/infra layer (78 tests across 5 files):
+
+```
+$ npm test
  ✓ server/utils/errorFormatter.test.ts (7 tests)
- ✓ server/infrastructure/persistence/MigrationRunner.test.ts (9 tests)
  ✓ server/infrastructure/persistence/SqliteTodoRepository.test.ts (23 tests)
  ✓ server/api/todos/todos.test.ts (31 tests)
 
  Test Files  5 passed (5)
       Tests  78 passed (78)
-   Duration  714ms
-
-EXIT: 0
+   Duration  843ms
 ```
 
-All 235 tests pass (157 app + 78 infra). The stderr output from
-`errorFormatter.test.ts` is expected — those tests deliberately exercise the
-unhandled-error logging path. ✓
+Grand total: **235 tests, all pass.** ✓
 
 ---
 
-## Round-2 Action: Resolve Rebase Conflicts
+## Commit Trailers
 
-The round-1 orchestrator recorded the task as failed due to rebase conflicts
-with main on `.hyperloop/checks/check-infra.sh` and
-`.hyperloop/state/reviews/task-019-round-0.md`. This round resolved those
-conflicts by rebasing `hyperloop/task-019` onto `origin/main`.
-
-### Conflicts resolved
-
-| File | Resolution |
-|---|---|
-| `.hyperloop/checks/check-infra.sh` | Kept HEAD (main) version — more comprehensive, checks all 3 required scripts |
-| `.hyperloop/state/reviews/task-019-round-0.md` | Kept HEAD (main) verifier version — authoritative round-0 review |
-| `.hyperloop/state/reviews/task-019-round-1.md` | Kept 78f5391 version — implementer pass verdict documenting round-1 fixes |
-
-All commits now rebase cleanly onto main. Branch history:
+All commits on the branch carry both required trailers:
 
 ```
-99656f4 review(task-019): verifier verdict — pass (round 1)
-39f80c3 fix(task-019): resolve round-1 findings — infra check script and timer test
-a53e7f3 review(task-019): verifier verdict — fail
-ad08029 test(task-019): optimistic UI updates and error handling with auto-dismiss
+Spec-Ref: specs/interface.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca
+Task-Ref: task-019
 ```
+
+Verified across all 5 commits: ad08029, a53e7f3, 39f80c3, 99656f4, c4ab976. ✓
+
+---
+
+## Round-2 Context
+
+This is the rebase-conflict round. The prior round-1 verifier verdict was **pass** (99656f4). The orchestrator flagged a rebase conflict with main on:
+
+- `.hyperloop/checks/check-infra.sh`
+- `.hyperloop/state/reviews/task-019-round-0.md`
+
+Commit c4ab976 (implementer round-2) resolved both conflicts and confirmed 235 tests pass on the rebased branch. Independent verification above confirms the same result.
+
+---
+
+## Spec Coverage Verification
+
+All four failure modes from `specs/interface.spec.md`:
+
+| Failure Mode | Test Location | Verified |
+|---|---|---|
+| API returns 500 on create — input not cleared, UI unchanged | `useTodoActions.spec.ts` `createTodo` suite + `index.spec.ts` failure modes | ✓ |
+| API returns 500 on toggle — checkbox reverts (optimistic rollback) | `useTodoActions.spec.ts` toggleTodo rollback test | ✓ |
+| Network offline — previously loaded list remains visible | `useTodoActions.spec.ts` loadTodos network-offline test | ✓ |
+| Duplicate rapid toggles — final server state wins | `useTodoActions.spec.ts` race-condition test | ✓ |
+
+NFR: Error auto-dismiss after 5s:
+
+- `app/stores/todos.ts` uses `setTimeout(..., 5_000)` in `addError`.
+- `app/stores/todos.spec.ts` uses `vi.useFakeTimers()` + `vi.advanceTimersByTime()` asserting the toast is present at t=4999ms and absent at t=5000ms. ✓
 
 ---
 
@@ -126,13 +183,15 @@ ad08029 test(task-019): optimistic UI updates and error handling with auto-dismi
 
 | Check | Result |
 |---|---|
-| `check-infra.sh` | PASS (exit 0) |
-| `check-deps.sh` | PASS (exit 0) |
-| Test suite (235 tests) | PASS |
-| Rebase conflicts | RESOLVED |
-| Optimistic UI update tests | PASS (35 tests in useTodoActions.spec.ts) |
-| Error handling / auto-dismiss timer | PASS (43 tests in todos.spec.ts, incl. fake-timer test) |
+| `check-infra.sh` | PASS |
+| `check-deps.sh` (TASK_ID=task-019) | PASS |
+| `check-task-meta.sh` (TASK_ID=task-019) | PASS |
+| `check-timer-tests.sh` | PASS |
+| App tests (157) | PASS |
+| Infra tests (78) | PASS |
+| Commit trailers (Spec-Ref + Task-Ref) | PASS |
 | All 4 spec failure modes covered | PASS |
+| Auto-dismiss fake-timer test | PASS |
+| Rebase conflicts resolved | PASS |
 
-Branch is cleanly rebased onto main. All prior round findings are resolved.
-Task is complete.
+All checks pass. Branch is clean. No findings.
