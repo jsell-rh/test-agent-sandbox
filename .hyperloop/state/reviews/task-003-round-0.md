@@ -1,7 +1,69 @@
 ---
 task_id: task-003
 round: 0
-role: orchestrator
-verdict: fail
+role: verifier
+verdict: pass
 ---
-Action error after 3 attempts: Rebase conflict with main. Conflicting files: 100644 3cb9e25c96986752a8ab0c5d1e3b10b3800e0fc3 2	src/domain/errors/InvalidTitleError.ts, 100644 7df9054cdc06e6a699c62834674cb65f4ee330af 3	src/domain/errors/InvalidTitleError.ts, 100644 faec22db207349036e6d326208ee077f6c8b7aaf 2	src/domain/errors/TodoNotFoundError.ts, 100644 7b38ed6ad521a5c6742f363a4fc901c482472a61 3	src/domain/errors/TodoNotFoundError.ts, 100644 aeb3e5035e8ea5dc0e32eb0326c2279950a1c578 2	src/domain/value-objects/FilterCriteria.ts, 100644 5e5a487333da47827e15b4dee6c0a66e5a124972 3	src/domain/value-objects/FilterCriteria.ts, 100644 fcd2bdf1619e39ecb53120ec52ec24fb0b23a5a8 2	src/domain/value-objects/Timestamp.ts, 100644 1336cc72f70fc1eebb31c58f6f269176629683d5 3	src/domain/value-objects/Timestamp.ts, 100644 b20571970e2132882f06848fc10fd4ec57192737 2	src/domain/value-objects/TodoStatus.ts, 100644 1c700d18a46e1fc9b3c1e2c13413b7ed83322637 3	src/domain/value-objects/TodoStatus.ts, 100644 6799f74c2308d6d1cd28d00fd3539257ba18a8ee 2	src/domain/value-objects/TodoTitle.ts, 100644 fce3b932a0bbc00ce8595bfcb0bdfca0c3bc9beb 3	src/domain/value-objects/TodoTitle.ts, .gitignore, package-lock.json, package.json, Auto-merging src/domain/errors/InvalidTitleError.ts, src/domain/errors/InvalidTitleError.ts, Auto-merging src/domain/errors/TodoNotFoundError.ts, src/domain/errors/TodoNotFoundError.ts, Auto-merging src/domain/value-objects/FilterCriteria.ts, src/domain/value-objects/FilterCriteria.ts, Auto-merging src/domain/value-objects/Timestamp.ts, src/domain/value-objects/Timestamp.ts, Auto-merging src/domain/value-objects/TodoStatus.ts, src/domain/value-objects/TodoStatus.ts, Auto-merging src/domain/value-objects/TodoTitle.ts, src/domain/value-objects/TodoTitle.ts. Your work is preserved on the branch. Please rebase onto main and resolve the conflicts.
+
+All checks pass.
+
+## Verification Steps
+
+### 1. Branch
+Already on `hyperloop/task-003`. ✓
+
+### 2. Diff reviewed
+`git diff main...HEAD` covers:
+- `src/domain/errors/` — `InvalidTitleError`, `TodoNotFoundError`, barrel `index.ts`
+- `src/domain/value-objects/` — `TodoId`, `TodoTitle`, `TodoStatus`, `FilterCriteria`, `Timestamp`, barrel `index.ts`
+- `src/domain/events/index.ts` — all five event classes + `DomainEvent` union type
+- `src/domain/aggregates/Todo.ts` — aggregate root with factory and command methods
+- `src/domain/repositories/TodoRepository.ts` — domain-owned repository interface
+- Supporting: `jest.config.js`, `tsconfig.json`, `package.json`, `package-lock.json`, `.gitignore`
+
+### 3. Test suite
+
+```
+Test Suites: 8 passed, 8 total
+Tests:       110 passed, 110 total
+```
+
+All spec TDD plan cases confirmed present:
+
+**TodoTitle**: blank → `InvalidTitleError` ✓, whitespace-only → `InvalidTitleError` ✓, 500-char boundary valid ✓, 501-char → `InvalidTitleError` ✓, trimming before validation ✓
+
+**Todo.create()**: status is `active` ✓, non-null `TodoId` assigned ✓, exactly one `TodoCreated` emitted ✓, `InvalidTitleError` on blank title ✓
+
+**todo.complete()**: `active` → `completed` ✓, `TodoCompleted` emitted ✓, idempotent no-op on already-completed (no event) ✓
+
+**todo.reopen()**: `completed` → `active` ✓, `TodoReopened` emitted ✓, idempotent no-op on already-active (no event) ✓
+
+**todo.updateTitle()**: title updated ✓, `TodoTitleUpdated` emitted ✓, `InvalidTitleError` on invalid new title ✓, original title preserved on failure ✓
+
+### 4. TypeScript type check
+`tsc --noEmit` exits cleanly (strict mode, ES2022). ✓
+
+### 5. Check scripts
+`.hyperloop/checks/` directory is empty — no check scripts to run. ✓
+
+### 6. Commit trailers
+
+Implementation commit `304cee7`:
+- `Spec-Ref: specs/domain-model.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca` ✓
+- `Task-Ref: task-003` ✓
+
+Errors commit `d87b2ad`:
+- `Spec-Ref: specs/domain-model.spec.md@b893040c2e865117bb3d18e86b80a45528bedbb5` ✓
+- `Task-Ref: task-003` ✓
+
+### 7. Spec compliance
+
+- Ubiquitous language used verbatim in all class/method/enum names ✓
+- All five domain events have correct fields (`todoId`, `title`/`newTitle` where applicable, `occurredAt`) ✓
+- All aggregate invariants enforced inside the Aggregate, not in a service layer ✓
+- `TodoStatus` enum values `active` / `completed` match spec ✓
+- `FilterCriteria` enum values `all` / `active` / `completed` match spec ✓
+- `TodoId` generated via UUID v4 (`crypto.randomUUID()`) ✓
+- Repository interface matches spec contract exactly (`findById`, `findAll`, `save`, `delete`) ✓
+- No Domain Services — all logic inside the `Todo` aggregate ✓
+- `InvalidTitleError` and `TodoNotFoundError` extend `Error` with prototype chain preserved ✓

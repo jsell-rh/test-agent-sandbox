@@ -11,7 +11,7 @@ import { TodoDeleted } from '../events/TodoDeleted';
 describe('Todo.create()', () => {
   it('returns a Todo with status active', () => {
     const todo = Todo.create(new TodoTitle('Buy milk'));
-    expect(todo.status).toBe(TodoStatus.active);
+    expect(todo.status).toBe(TodoStatus.Active);
   });
 
   it('assigns a non-null TodoId', () => {
@@ -68,7 +68,7 @@ describe('todo.complete()', () => {
 
     todo.complete();
 
-    expect(todo.status).toBe(TodoStatus.completed);
+    expect(todo.status).toBe(TodoStatus.Completed);
     expect(todo.domainEvents).toHaveLength(1);
     expect(todo.domainEvents[0]).toBeInstanceOf(TodoCompleted);
   });
@@ -90,7 +90,7 @@ describe('todo.complete()', () => {
 
     todo.complete(); // second call — no-op
 
-    expect(todo.status).toBe(TodoStatus.completed);
+    expect(todo.status).toBe(TodoStatus.Completed);
     expect(todo.domainEvents).toHaveLength(0);
   });
 
@@ -117,7 +117,7 @@ describe('todo.reopen()', () => {
 
     todo.reopen();
 
-    expect(todo.status).toBe(TodoStatus.active);
+    expect(todo.status).toBe(TodoStatus.Active);
     expect(todo.domainEvents).toHaveLength(1);
     expect(todo.domainEvents[0]).toBeInstanceOf(TodoReopened);
   });
@@ -139,7 +139,7 @@ describe('todo.reopen()', () => {
 
     todo.reopen(); // already active — no-op
 
-    expect(todo.status).toBe(TodoStatus.active);
+    expect(todo.status).toBe(TodoStatus.Active);
     expect(todo.domainEvents).toHaveLength(0);
   });
 });

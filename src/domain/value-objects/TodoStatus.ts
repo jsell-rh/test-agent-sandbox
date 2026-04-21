@@ -1,9 +1,10 @@
 /**
- * Value Object (enumeration): the current lifecycle state of a Todo.
+ * The current lifecycle state of a Todo.
+ * Transitions are enforced by the Todo Aggregate.
  *
- * Transitions are enforced by the Todo Aggregate, not here.
+ * Spec-Ref: specs/domain-model.spec.md — Value Objects / TodoStatus
  */
 export enum TodoStatus {
-  active = 'active',
-  completed = 'completed',
+  Active = 'active',
+  Completed = 'completed',
 }

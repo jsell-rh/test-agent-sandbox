@@ -1,23 +1,19 @@
 /**
- * Value Object: an ISO 8601 UTC datetime string.
+ * ISO 8601 UTC datetime string. Immutable once set.
+ * Equality by value.
  *
- * Immutable once set. Equality by value.
+ * Spec-Ref: specs/domain-model.spec.md — Value Objects / Timestamp
  */
 export class Timestamp {
   private readonly _value: string;
 
-  private constructor(isoString: string) {
-    this._value = isoString;
+  constructor(value: string) {
+    this._value = value;
   }
 
-  /** Create a Timestamp representing the current moment. */
+  /** Create a Timestamp representing the current moment in UTC. */
   static now(): Timestamp {
     return new Timestamp(new Date().toISOString());
-  }
-
-  /** Create a Timestamp from an existing ISO 8601 string. */
-  static from(isoString: string): Timestamp {
-    return new Timestamp(isoString);
   }
 
   get value(): string {
