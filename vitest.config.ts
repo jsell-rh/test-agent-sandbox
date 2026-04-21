@@ -8,7 +8,8 @@ export default defineVitestConfig({
         domEnvironment: 'happy-dom',
       },
     },
-    include: ['**/*.spec.ts', '**/*.test.ts'],
+    // App-layer tests only — server infrastructure tests use vitest.infra.config.ts
+    include: ['app/**/*.spec.ts', 'app/**/*.test.ts'],
     exclude: ['node_modules', '.nuxt', '.output'],
     coverage: {
       provider: 'v8',
