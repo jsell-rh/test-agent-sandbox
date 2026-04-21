@@ -8,11 +8,15 @@
  *  - Footer only visible when todos exist
  *  - Empty state message when filtered list is empty
  *  - New-todo input: Enter creates, Escape clears
+ *  - Edit mode: double-click, Escape cancels, blank title deletes
  *
  * Critical test cases mapped from specs/interface.spec.md TDD Plan:
  *  - "Clear completed" button only visible when completedCount > 0
  *  - "{N} item(s) left" reflects current active count after toggling
  *  - Filter tabs correctly show/hide items without an additional network request
+ *  - Double-clicking a title enters edit mode for that item only
+ *  - Pressing Escape in edit mode restores original title (no save)
+ *  - Submitting blank title in edit mode deletes the item
  *
  * Strategy:
  *  - useTodoActions is mocked (vi.mock) to prevent real API calls.
@@ -428,6 +432,77 @@ describe('new-todo input', () => {
     await input.trigger('keydown', { key: 'Enter' })
 
     expect(mockCreateTodo).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Edit mode — double-click, Escape, blank submit
+// ---------------------------------------------------------------------------
+
+describe('edit mode', () => {
+  it('double-clicking a todo label enters edit mode for THAT item only', async () => {
+    const store = useTodosStore()
+    const todo1 = makeTodo({ title: 'First todo' })
+    const todo2 = makeTodo({ title: 'Second todo' })
+    store.setTodos([todo1, todo2], makeCounts({ all: 2, active: 2, completed: 0 }))
+
+    const wrapper = mountPage()
+    await wrapper.vm.$nextTick()
+
+    // Double-click the label of the first item
+    const labels = wrapper.findAll('.todo-item__label')
+    await labels[0]!.trigger('dblclick')
+    await wrapper.vm.$nextTick()
+
+    // Only the first todo should be in edit mode
+    expect(store.editingTodoId).toBe(todo1.id)
+
+    // Only one edit input should be rendered (for the first item)
+    const editInputs = wrapper.findAll('.todo-item__edit-input')
+    expect(editInputs).toHaveLength(1)
+
+    // Second item should NOT be in edit mode
+    expect(store.editingTodoId).not.toBe(todo2.id)
+  })
+
+  it('pressing Escape in edit mode clears editingTodoId without calling updateTitle', async () => {
+    const store = useTodosStore()
+    const todo = makeTodo({ title: 'Original title' })
+    store.setTodos([todo], makeCounts({ all: 1, active: 1, completed: 0 }))
+    store.startEditing(todo.id)
+
+    const wrapper = mountPage()
+    await wrapper.vm.$nextTick()
+
+    const editInput = wrapper.find('.todo-item__edit-input')
+    await editInput.setValue('Modified title')
+    await editInput.trigger('keydown', { key: 'Escape' })
+    await wrapper.vm.$nextTick()
+
+    // Edit mode should be cleared
+    expect(store.editingTodoId).toBeNull()
+
+    // updateTitle must NOT have been called — Escape cancels without saving
+    expect(mockUpdateTitle).not.toHaveBeenCalled()
+  })
+
+  it('submitting a blank title in edit mode calls updateTitle with empty string (triggers delete)', async () => {
+    const store = useTodosStore()
+    const todo = makeTodo({ title: 'Will be deleted' })
+    store.setTodos([todo], makeCounts({ all: 1, active: 1, completed: 0 }))
+    store.startEditing(todo.id)
+
+    const wrapper = mountPage()
+    await wrapper.vm.$nextTick()
+
+    const editInput = wrapper.find('.todo-item__edit-input')
+    await editInput.setValue('')
+    await editInput.trigger('keydown', { key: 'Enter' })
+    await wrapper.vm.$nextTick()
+
+    // updateTitle is called with the blank value; the real implementation
+    // delegates to deleteTodo when the trimmed title is empty (per spec).
+    expect(mockUpdateTitle).toHaveBeenCalledWith(todo, '')
   })
 })
 
