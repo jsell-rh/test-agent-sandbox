@@ -50,13 +50,24 @@ if [[ -n "$COMMITTED" ]]; then
   echo "  These files cause a rebase conflict on every round because the orchestrator" >&2
   echo "  also writes them to main.  You must restore them to match main before pushing." >&2
   echo "" >&2
-  echo "  Fix (run in order):" >&2
+  echo "  !! WARNING: A fixup commit is INSUFFICIENT if state files appear in intermediate !!" >&2
+  echo "  !! commits — the orchestrator replays commits one-by-one and will conflict at  !!" >&2
+  echo "  !! the original bad commit even if the final tree is restored to match main.   !!" >&2
+  echo "" >&2
+  echo "  Also run check-state-commit-history.sh to detect intermediate-commit violations:" >&2
+  echo "    bash .hyperloop/checks/check-state-commit-history.sh" >&2
+  echo "" >&2
+  echo "  If check-state-commit-history.sh also fails, run the permanent-conflict check:" >&2
+  echo "    TASK_ID=<id> bash .hyperloop/checks/check-permanent-conflict.sh" >&2
+  echo "  and follow its branch-surgery instructions instead of the fixup below." >&2
+  echo "" >&2
+  echo "  Fixup (only safe when state files are ONLY in the final tree, not in prior commits):" >&2
   echo "    git fetch origin" >&2
   echo "    git checkout origin/main -- .hyperloop/state/" >&2
   echo "    git add .hyperloop/state/" >&2
   echo "    git commit -m 'fix: restore orchestrator state files to match main'" >&2
   echo "" >&2
-  echo "  Then re-run the full checks sweep." >&2
+  echo "  Then re-run the full checks sweep including check-state-commit-history.sh." >&2
   RC=1
 fi
 

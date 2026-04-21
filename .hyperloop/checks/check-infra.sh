@@ -23,6 +23,7 @@ REQUIRED_SCRIPTS=(
   "check-no-conflicts.sh"
   "check-merge-simulation.sh"
   "check-push-sync.sh"
+  "check-permanent-conflict.sh"
 )
 
 all_ok=true
