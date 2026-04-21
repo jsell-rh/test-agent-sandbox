@@ -17,6 +17,9 @@ REQUIRED_SCRIPTS=(
   "check-task-meta.sh"
   "check-timer-tests.sh"
   "check-rebase-clean.sh"
+  "check-rebase-state.sh"
+  "check-no-conflicts.sh"
+  "check-merge-simulation.sh"
 )
 
 all_ok=true
