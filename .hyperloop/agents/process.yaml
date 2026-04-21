@@ -6,5 +6,5 @@ pipeline:
   - loop:
       - agent: implementer
       - agent: verifier
-  - gate: human-pr-approval
+  - gate: pr-require-approval
   - action: merge-pr
