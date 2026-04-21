@@ -1,75 +1,47 @@
 ---
 task_id: task-002
 round: 0
-role: verifier
+role: implementer
 verdict: pass
-findings: 0
 ---
 
-All checks pass.
+## Summary
 
-## Verification Summary
+Implemented Domain Events for the Todo Management Bounded Context per `specs/domain-model.spec.md`.
 
-### Branch
-`hyperloop/task-002` — reviewed against `main`.
+### Dependency Gate
 
-### Commits reviewed
-- `6bcbcf5` feat(domain): implement Todo domain model with TDD (task-001)  
-  Trailers: `Spec-Ref: specs/domain-model.spec.md`, `Task-Ref: task-001` ✅
-- `35350e7` feat(domain): add dedicated domain event test suite (task-002)  
-  Trailers: `Spec-Ref: specs/domain-model.spec.md`, `Task-Ref: task-002` ✅
+- `task-001` (Domain Value Objects and Domain Errors): `status: complete` ✅
 
-### Test Suite
-```
-PASS src/domain/__tests__/DomainEvents.test.ts
-PASS src/domain/__tests__/Todo.test.ts
-PASS src/domain/__tests__/TodoTitle.test.ts
+### What was implemented
 
-Tests: 54 passed, 54 total
-```
+**Base type**:
+- `DomainEvent` interface (`src/domain/events/DomainEvent.ts`) — defines `eventName` and `occurredAt` fields shared by all events.
 
-### Spec compliance
-
-**Ubiquitous Language** — all terms used verbatim in code:
-- `Todo`, `TodoTitle`, `TodoStatus`, `FilterCriteria`, `Timestamp` ✅
-- `TodoCreated`, `TodoCompleted`, `TodoReopened`, `TodoTitleUpdated`, `TodoDeleted` ✅
-- `complete()`, `reopen()`, `updateTitle()`, `delete()` ✅
-
-**TodoTitle invariants**:
-- Blank/whitespace-only → `InvalidTitleError` ✅
-- 500 chars valid, 501 chars invalid ✅
-- Leading/trailing whitespace trimmed before validation ✅
-
-**Todo.create()**:
-- Returns status `active` ✅
-- Assigns UUID v4 `TodoId` ✅
-- Emits exactly one `TodoCreated` event with correct fields ✅
-- Raises `InvalidTitleError` for invalid title ✅
-
-**todo.complete()**:
-- `active` → `completed`, emits `TodoCompleted` ✅
-- Idempotent no-op on already-completed (no event emitted) ✅
-
-**todo.reopen()**:
-- `completed` → `active`, emits `TodoReopened` ✅
-- Idempotent no-op on already-active (no event emitted) ✅
-
-**todo.updateTitle()**:
-- Updates title, emits `TodoTitleUpdated` ✅
-- `InvalidTitleError` on invalid title; original title preserved ✅
-
-**Domain Events** — all immutable records with correct fields:
+**Event classes** (all fields `readonly`, immutable records):
 - `TodoCreated { todoId, title, occurredAt }` ✅
 - `TodoCompleted { todoId, occurredAt }` ✅
 - `TodoReopened { todoId, occurredAt }` ✅
 - `TodoTitleUpdated { todoId, newTitle, occurredAt }` ✅
 - `TodoDeleted { todoId, occurredAt }` ✅
 
-**Domain Errors**: `InvalidTitleError`, `TodoNotFoundError` — both present with correct prototype chains ✅
+**Aggregate integration** (`src/domain/Todo.ts`):
+- `Todo.create()` emits `TodoCreated` ✅
+- `todo.complete()` emits `TodoCompleted` (idempotent no-op if already completed) ✅
+- `todo.reopen()` emits `TodoReopened` (idempotent no-op if already active) ✅
+- `todo.updateTitle()` emits `TodoTitleUpdated` ✅
+- `todo.delete()` emits `TodoDeleted` ✅
 
-**Repository Interface**: `findById`, `findAll`, `save`, `delete` — domain-owned contract, no implementation in domain layer ✅
+**TDD**: Dedicated test suite added in `src/domain/__tests__/DomainEvents.test.ts` covering all five event classes for:
+- Correct `eventName` matching Ubiquitous Language
+- All spec-defined fields present
+- Valid ISO 8601 `occurredAt` timestamp
+- Immutability preserved after construction
+- Satisfies `DomainEvent` interface
 
-**No Domain Services**: all business logic inside the `Todo` Aggregate ✅
+### Test results
 
-### No checks directory
-`.hyperloop/checks/` does not exist — no check scripts to run.
+All 54 tests pass across three suites:
+- `DomainEvents.test.ts` (domain event unit tests — task-002)
+- `Todo.test.ts` (aggregate behaviour — task-001)
+- `TodoTitle.test.ts` (value object — task-001)
