@@ -1,46 +1,69 @@
 ---
 task_id: task-003
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-## Summary
+All checks pass.
 
-Implemented the full Todo Management domain model per `specs/domain-model.spec.md`.
+## Verification Steps
 
-### What was done
+### 1. Branch
+Already on `hyperloop/task-003`. ✓
 
-**Value Objects** (`src/domain/value-objects/`):
-- `TodoId` — UUID v4 string generated via `crypto.randomUUID()`, value equality, immutable.
-- `TodoTitle` — validates non-blank, max 500 chars, trims whitespace before validation, raises `InvalidTitleError` on violation.
-- `TodoStatus` — enum `active | completed`.
-- `FilterCriteria` — enum `all | active | completed`.
-- `Timestamp` — ISO 8601 UTC string, factory `Timestamp.now()`, value equality.
-- `index.ts` barrel export.
+### 2. Diff reviewed
+`git diff main...HEAD` covers:
+- `src/domain/errors/` — `InvalidTitleError`, `TodoNotFoundError`, barrel `index.ts`
+- `src/domain/value-objects/` — `TodoId`, `TodoTitle`, `TodoStatus`, `FilterCriteria`, `Timestamp`, barrel `index.ts`
+- `src/domain/events/index.ts` — all five event classes + `DomainEvent` union type
+- `src/domain/aggregates/Todo.ts` — aggregate root with factory and command methods
+- `src/domain/repositories/TodoRepository.ts` — domain-owned repository interface
+- Supporting: `jest.config.js`, `tsconfig.json`, `package.json`, `package-lock.json`, `.gitignore`
 
-**Domain Events** (`src/domain/events/index.ts`):
-- `TodoCreated`, `TodoCompleted`, `TodoReopened`, `TodoTitleUpdated`, `TodoDeleted` — immutable class records with `readonly` constructor parameters.
-- `DomainEvent` union type exported for aggregate and application use.
+### 3. Test suite
 
-**Aggregate** (`src/domain/aggregates/Todo.ts`):
-- `Todo.create(title)` — factory method: validates title via `TodoTitle` VO, generates a new `TodoId`, sets status to `active`, emits `TodoCreated`.
-- `complete()` — idempotent; transitions `active → completed` and emits `TodoCompleted`; no-op (returns `void`) if already completed.
-- `reopen()` — idempotent; transitions `completed → active` and emits `TodoReopened`; no-op (returns `void`) if already active.
-- `updateTitle(newTitle)` — updates title and emits `TodoTitleUpdated`; `TodoTitle` VO enforces invariants.
-- `delete()` — emits `TodoDeleted`; actual removal delegated to repository.
-- `domainEvents` getter accumulates all events for consumption by the application layer.
+```
+Test Suites: 8 passed, 8 total
+Tests:       110 passed, 110 total
+```
 
-**Repository Interface** (`src/domain/repositories/TodoRepository.ts`):
-- `TodoRepository` interface: `findById`, `findAll`, `save`, `delete` — domain-owned contract for infrastructure implementation.
+All spec TDD plan cases confirmed present:
 
-### Test results
+**TodoTitle**: blank → `InvalidTitleError` ✓, whitespace-only → `InvalidTitleError` ✓, 500-char boundary valid ✓, 501-char → `InvalidTitleError` ✓, trimming before validation ✓
 
-- 8 test suites, **110 tests passing**, 0 failing.
-- `tsc --noEmit` exits cleanly (strict mode, ES2022).
-- All spec test cases from the TDD Plan are covered:
-  - `TodoTitle`: blank, whitespace-only, 500-char boundary, 501-char rejection, trimming.
-  - `Todo.create()`: active status, unique id, single `TodoCreated` event, `InvalidTitleError` on invalid title.
-  - `todo.complete()`: state transition, event emitted, idempotent no-op.
-  - `todo.reopen()`: state transition, event emitted, idempotent no-op.
-  - `todo.updateTitle()`: title update, event emitted, `InvalidTitleError` on invalid title, original title preserved.
+**Todo.create()**: status is `active` ✓, non-null `TodoId` assigned ✓, exactly one `TodoCreated` emitted ✓, `InvalidTitleError` on blank title ✓
+
+**todo.complete()**: `active` → `completed` ✓, `TodoCompleted` emitted ✓, idempotent no-op on already-completed (no event) ✓
+
+**todo.reopen()**: `completed` → `active` ✓, `TodoReopened` emitted ✓, idempotent no-op on already-active (no event) ✓
+
+**todo.updateTitle()**: title updated ✓, `TodoTitleUpdated` emitted ✓, `InvalidTitleError` on invalid new title ✓, original title preserved on failure ✓
+
+### 4. TypeScript type check
+`tsc --noEmit` exits cleanly (strict mode, ES2022). ✓
+
+### 5. Check scripts
+`.hyperloop/checks/` directory is empty — no check scripts to run. ✓
+
+### 6. Commit trailers
+
+Implementation commit `304cee7`:
+- `Spec-Ref: specs/domain-model.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca` ✓
+- `Task-Ref: task-003` ✓
+
+Errors commit `d87b2ad`:
+- `Spec-Ref: specs/domain-model.spec.md@b893040c2e865117bb3d18e86b80a45528bedbb5` ✓
+- `Task-Ref: task-003` ✓
+
+### 7. Spec compliance
+
+- Ubiquitous language used verbatim in all class/method/enum names ✓
+- All five domain events have correct fields (`todoId`, `title`/`newTitle` where applicable, `occurredAt`) ✓
+- All aggregate invariants enforced inside the Aggregate, not in a service layer ✓
+- `TodoStatus` enum values `active` / `completed` match spec ✓
+- `FilterCriteria` enum values `all` / `active` / `completed` match spec ✓
+- `TodoId` generated via UUID v4 (`crypto.randomUUID()`) ✓
+- Repository interface matches spec contract exactly (`findById`, `findAll`, `save`, `delete`) ✓
+- No Domain Services — all logic inside the `Todo` aggregate ✓
+- `InvalidTitleError` and `TodoNotFoundError` extend `Error` with prototype chain preserved ✓
