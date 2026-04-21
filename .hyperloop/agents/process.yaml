@@ -4,7 +4,7 @@ metadata:
   name: default
 pipeline:
   - loop:
-      - role: implementer
-      - role: verifier
+      - agent: implementer
+      - agent: verifier
   - gate: human-pr-approval
   - action: merge-pr

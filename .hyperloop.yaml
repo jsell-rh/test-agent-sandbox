@@ -1,6 +1,5 @@
-target:
-  base_branch: main
-  repo: jsell-rh/test-agent-sandbox
+base_branch: main
+repo: jsell-rh/test-agent-sandbox
 
 runtime: local
 max_workers: 5
