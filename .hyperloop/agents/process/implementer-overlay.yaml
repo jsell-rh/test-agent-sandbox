@@ -3,6 +3,7 @@ kind: Agent
 metadata:
   name: implementer
 guidelines: |
-  - Dep-gate first: Before writing any code, run `TASK_ID=<id> bash .hyperloop/checks/check-deps.sh`; if it exits non-zero, stop immediately and report BLOCKED — do not proceed with implementation.
+  - Infra check first: Run `bash .hyperloop/checks/check-infra.sh` as the very first action; if it exits non-zero the checks infrastructure is broken — report the gap as a hard blocker and stop.
+  - Dep-gate second: After infra check passes, run `TASK_ID=<id> bash .hyperloop/checks/check-deps.sh`; if it exits non-zero, stop immediately and report BLOCKED — do not proceed with implementation.
   - Never assume a dep is complete: always confirm by reading its task file; `status: complete` is the only acceptable terminal state.
-  - Script must exist: if `check-deps.sh` is missing, treat it as a hard blocker and report the gap rather than skipping the check.
+  - Script must exist: if any check script is missing or not executable, treat it as a hard blocker and report the gap rather than skipping the check.
