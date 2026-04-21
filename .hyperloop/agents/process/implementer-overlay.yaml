@@ -10,4 +10,5 @@ guidelines: |
   - Verify before claiming absence: if any script exits with code 127, run `ls .hyperloop/checks/` and quote the output before declaring any file missing.
   - Never assume a dep is complete: always confirm by reading its task file; `status: complete` is the only acceptable terminal state.
   - Script must exist: if any check script is missing or not executable, treat it as a hard blocker and report the gap rather than skipping the check.
+  - Run ALL check scripts before submitting: after implementing, run every script under `.hyperloop/checks/` (e.g. `for s in .hyperloop/checks/*.sh; do bash "$s"; done`) and fix every non-zero exit before marking work done — skipping or ignoring any check is not permitted.
   - Test timer-based behavior with fake timers: whenever production code uses setTimeout or setInterval, write a test using vi.useFakeTimers() and vi.advanceTimersByTime() that verifies the scheduled callback fires; testing only the called method in isolation is insufficient — the scheduled invocation itself must be asserted.
