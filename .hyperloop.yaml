@@ -1,8 +1,9 @@
-target:
-  base_branch: main
-  repo: jsell-rh/test-agent-sandbox
+overlay: .hyperloop/agents/
+base_branch: main
+runtime: local      
 
-runtime: local
+repo: jsell-rh/test-agent-sandbox
+
 max_workers: 5
 ambient:                     # required when runtime: ambient                                                                                            
   project_id: test-hyperloop                                                                                                                         
