@@ -1,44 +1,46 @@
 ---
 task_id: task-003
 round: 0
-role: verifier
+role: implementer
 verdict: pass
 ---
 
-All checks pass.
+## Summary
 
-## Verification Steps
+Implemented the full Todo Management domain model per `specs/domain-model.spec.md`.
 
-### 1. Commit Trailers
-- `Spec-Ref: specs/domain-model.spec.md@b893040c2e865117bb3d18e86b80a45528bedbb5` ✅
-- `Task-Ref: task-003` ✅
+### What was done
 
-### 2. Test Suite
-`npm install && npm test` — 20/20 tests pass.
+**Value Objects** (`src/domain/value-objects/`):
+- `TodoId` — UUID v4 string generated via `crypto.randomUUID()`, value equality, immutable.
+- `TodoTitle` — validates non-blank, max 500 chars, trims whitespace before validation, raises `InvalidTitleError` on violation.
+- `TodoStatus` — enum `active | completed`.
+- `FilterCriteria` — enum `all | active | completed`.
+- `Timestamp` — ISO 8601 UTC string, factory `Timestamp.now()`, value equality.
+- `index.ts` barrel export.
 
-```
-Test Suites: 1 passed, 1 total
-Tests:       20 passed, 20 total
-```
+**Domain Events** (`src/domain/events/index.ts`):
+- `TodoCreated`, `TodoCompleted`, `TodoReopened`, `TodoTitleUpdated`, `TodoDeleted` — immutable class records with `readonly` constructor parameters.
+- `DomainEvent` union type exported for aggregate and application use.
 
-### 3. Type Checking
-`tsc --noEmit` exits cleanly (0). ✅
+**Aggregate** (`src/domain/aggregates/Todo.ts`):
+- `Todo.create(title)` — factory method: validates title via `TodoTitle` VO, generates a new `TodoId`, sets status to `active`, emits `TodoCreated`.
+- `complete()` — idempotent; transitions `active → completed` and emits `TodoCompleted`; no-op (returns `void`) if already completed.
+- `reopen()` — idempotent; transitions `completed → active` and emits `TodoReopened`; no-op (returns `void`) if already active.
+- `updateTitle(newTitle)` — updates title and emits `TodoTitleUpdated`; `TodoTitle` VO enforces invariants.
+- `delete()` — emits `TodoDeleted`; actual removal delegated to repository.
+- `domainEvents` getter accumulates all events for consumption by the application layer.
 
-### 4. Check Scripts
-No scripts found in `.hyperloop/checks/`. ✅
+**Repository Interface** (`src/domain/repositories/TodoRepository.ts`):
+- `TodoRepository` interface: `findById`, `findAll`, `save`, `delete` — domain-owned contract for infrastructure implementation.
 
-### 5. Code Review
+### Test results
 
-**`InvalidTitleError.ts`** — Correct `Error` subclass with `Object.setPrototypeOf` for prototype chain preservation. `name` set to `'InvalidTitleError'`. Message prefixed with class name per test expectations.
-
-**`TodoNotFoundError.ts`** — Same structure. Message includes the `todoId` string. Non-interchangeability with `InvalidTitleError` verified by tests.
-
-**`src/domain/errors/index.ts`** — Clean barrel export for both classes.
-
-**`tsconfig.json`** — Strict mode enabled, targeting ES2022/commonjs. Appropriate for the project.
-
-**`jest.config.js`** — ts-jest preset, node environment, correct test match pattern.
-
-### 6. Observations (non-blocking)
-- Message format `"InvalidTitleError: ${reason}"` embeds the class name inside the message string (redundant with `error.name`). This is consistent across both error classes, tests verify it explicitly, and it is acceptable as a deliberate convention.
-- `Object.setPrototypeOf` is defensively correct; harmless even when targeting ES2022 where native class prototype chains work without it.
+- 8 test suites, **110 tests passing**, 0 failing.
+- `tsc --noEmit` exits cleanly (strict mode, ES2022).
+- All spec test cases from the TDD Plan are covered:
+  - `TodoTitle`: blank, whitespace-only, 500-char boundary, 501-char rejection, trimming.
+  - `Todo.create()`: active status, unique id, single `TodoCreated` event, `InvalidTitleError` on invalid title.
+  - `todo.complete()`: state transition, event emitted, idempotent no-op.
+  - `todo.reopen()`: state transition, event emitted, idempotent no-op.
+  - `todo.updateTitle()`: title update, event emitted, `InvalidTitleError` on invalid title, original title preserved.
