@@ -10,3 +10,5 @@ export enum FilterCriteria {
   Active = 'active',
   Completed = 'completed',
 }
+
+export const DEFAULT_FILTER_CRITERIA = FilterCriteria.All;

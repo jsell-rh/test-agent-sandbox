@@ -40,7 +40,7 @@ export class Todo {
   }
 
   // ---------------------------------------------------------------------------
-  // Factory Method
+  // Factory Methods
   // ---------------------------------------------------------------------------
 
   /**
@@ -57,6 +57,23 @@ export class Todo {
     const todo = new Todo(id, title.value, TodoStatus.Active, now, now);
     todo._record(new TodoCreated(id, title.value, now));
     return todo;
+  }
+
+  /**
+   * Reconstitute a Todo from a persistence row.
+   *
+   * This factory bypasses event emission — loading from storage MUST NOT
+   * re-emit `TodoCreated` or any other domain event. Use this path exclusively
+   * inside repository implementations.
+   */
+  static reconstitute(
+    id: string,
+    title: string,
+    status: TodoStatus,
+    createdAt: string,
+    updatedAt: string,
+  ): Todo {
+    return new Todo(id, title, status, createdAt, updatedAt);
   }
 
   // ---------------------------------------------------------------------------

@@ -1,28 +1,29 @@
 import { InvalidTitleError } from '../errors/InvalidTitleError';
 
+const MAX_LENGTH = 500;
+
 /**
- * The human-readable description of the work to be done.
- * Non-empty string, max 500 characters, leading/trailing whitespace trimmed.
- * Immutable — replacing a title produces a new TodoTitle.
- * Equality by value (case-sensitive).
+ * Value Object: the human-readable description of the work to be done.
  *
- * Spec-Ref: specs/domain-model.spec.md — Value Objects / TodoTitle
+ * Invariants:
+ * - Must not be blank (empty or whitespace-only) after trimming.
+ * - Must not exceed 500 characters after trimming.
+ * - Immutable: producing a new title creates a new instance.
+ * - Equality by value (case-sensitive).
  */
 export class TodoTitle {
-  static readonly MAX_LENGTH = 500;
-
   private readonly _value: string;
 
-  constructor(rawValue: string) {
-    const trimmed = rawValue.trim();
+  constructor(raw: string) {
+    const trimmed = raw.trim();
 
     if (trimmed.length === 0) {
-      throw new InvalidTitleError('title must not be blank');
+      throw new InvalidTitleError('Title must not be blank or whitespace-only.');
     }
 
-    if (trimmed.length > TodoTitle.MAX_LENGTH) {
+    if (trimmed.length > MAX_LENGTH) {
       throw new InvalidTitleError(
-        `title must not exceed ${TodoTitle.MAX_LENGTH} characters`,
+        `Title must not exceed ${MAX_LENGTH} characters (got ${trimmed.length}).`,
       );
     }
 

@@ -10,50 +10,43 @@ All checks pass.
 
 ## Verification Summary
 
-### Tests
-All 31 tests pass across 2 suites (`Todo.test.ts`, `TodoTitle.test.ts`).
-
-```
-PASS src/domain/__tests__/Todo.test.ts
-PASS src/domain/__tests__/TodoTitle.test.ts
-
-Test Suites: 2 passed, 2 total
-Tests:       31 passed, 31 total
-```
-
-### TypeScript
-`tsc --noEmit` exits clean — no type errors.
-
-### Check Scripts
-No scripts in `.hyperloop/checks/`.
-
 ### Commit Trailers
-Implementation commit `2553aca` carries both required trailers:
-- `Spec-Ref: specs/domain-model.spec.md` ✓
-- `Task-Ref: task-001` ✓
+- `Spec-Ref: specs/domain-model.spec.md` — present ✅
+- `Task-Ref: task-001` — present ✅
 
-### Spec Coverage
+### Test Suite
+- 31 tests across 2 suites — all pass ✅
+- No `.hyperloop/checks/` scripts to run (directory absent)
 
-**Ubiquitous Language** — All required terms used verbatim in code: `Todo`, `TodoTitle`, `TodoStatus`, `FilterCriteria`, `Timestamp`, `TodoCreated`, `TodoCompleted`, `TodoReopened`, `TodoTitleUpdated`, `TodoDeleted`, `complete()`, `reopen()`. ✓
+### Spec Compliance
 
-**TodoTitle invariants** — Blank/whitespace raises `InvalidTitleError`; 500-char valid; 501-char raises error; leading/trailing whitespace trimmed before validation. ✓
+**Ubiquitous Language** — all terms used verbatim in code:
+- `Todo`, `TodoId`, `TodoTitle`, `TodoStatus`, `FilterCriteria` ✅
+- `TodoCreated`, `TodoCompleted`, `TodoReopened`, `TodoTitleUpdated`, `TodoDeleted` ✅
+- `complete()`, `reopen()` ✅
 
-**Todo.create()** — Returns `status: active`, assigns UUID v4 `TodoId`, emits exactly one `TodoCreated` event, raises `InvalidTitleError` on invalid title. ✓
+**Todo Aggregate Root**:
+- State fields: `id`, `title`, `status`, `createdAt`, `updatedAt` ✅
+- Factory `Todo.create(title: TodoTitle)` assigns UUID v4 id, sets `status: active`, emits `TodoCreated` ✅
+- All five command methods present and correct ✅
 
-**todo.complete()** — Transitions `active → completed`, emits `TodoCompleted`; idempotent no-op on already-completed Todo. ✓
+**Invariants** (enforced inside Aggregate, not Services):
+1. `TodoTitle` blank → `InvalidTitleError` ✅
+2. `TodoTitle` > 500 chars → `InvalidTitleError` ✅
+3. `complete()` on `completed` is idempotent no-op ✅
+4. `reopen()` on `active` is idempotent no-op ✅
+5. `Todo` cannot be created without a `TodoTitle` ✅
 
-**todo.reopen()** — Transitions `completed → active`, emits `TodoReopened`; idempotent no-op on already-active Todo. ✓
+**Value Objects**: `TodoTitle` (trim → validate → store), `TodoStatus` (enum), `FilterCriteria` (enum, default `all`), `Timestamp` (ISO 8601 UTC) ✅
 
-**todo.updateTitle()** — Updates title, emits `TodoTitleUpdated`; raises `InvalidTitleError` and leaves original title unchanged on invalid input. ✓
+**Domain Events** — all immutable, correct field shapes per spec ✅
 
-**todo.delete()** — Emits `TodoDeleted`; actual removal delegated to repository. ✓
+**Domain Errors**: `InvalidTitleError`, `TodoNotFoundError` — correct prototype chain fix applied ✅
 
-**Domain Events** — All five events (`TodoCreated`, `TodoCompleted`, `TodoReopened`, `TodoTitleUpdated`, `TodoDeleted`) are immutable records with correct fields per spec. ✓
+**Repository Interface** — domain-owned, correct four methods ✅
 
-**Domain Errors** — `InvalidTitleError` and `TodoNotFoundError` both present with proper prototype chain fix for transpiled code. ✓
+**No Domain Services** — all business logic inside `Todo` Aggregate ✅
 
-**Repository Interface** — `TodoRepository` interface (`findById`, `findAll`, `save`, `delete`) is domain-owned; no concrete implementation in domain layer. ✓
+**TDD coverage** — all critical test cases from spec TDD Plan covered ✅
 
-**No Domain Services** — All business logic lives inside the `Todo` aggregate. No anemic model. ✓
-
-**Value Objects** — `TodoTitle`, `TodoStatus`, `FilterCriteria`, `Timestamp` all implemented with correct semantics (immutability, equality-by-value, correct validation). ✓
+**`FilterCriteria` isolation** — not imported by `Todo.ts`, correctly Application Layer only ✅
