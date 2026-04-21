@@ -45,15 +45,22 @@ if [[ -n "$OFFENDING" ]]; then
   echo "  one-by-one during rebase. Each offending commit will conflict with" >&2
   echo "  main's state files, causing 'Action error after 3 attempts' every time." >&2
   echo "" >&2
-  echo "  Fix: Add a fixup commit that fully removes any state-file changes:" >&2
-  echo "    git fetch origin" >&2
-  echo "    git checkout origin/main -- .hyperloop/state/" >&2
-  echo "    git add .hyperloop/state/" >&2
-  echo "    git commit -m 'fix: restore state files to match main (remove from task branch)'" >&2
-  echo "  Then re-run all checks including check-no-state-files.sh." >&2
+  echo "  WARNING: A fixup commit does NOT fix this." >&2
+  echo "  The orchestrator replays commits one-by-one; a fixup appended at the end" >&2
+  echo "  does not prevent the conflict at the original bad commit during replay." >&2
   echo "" >&2
-  echo "  Alternatively, use 'git rebase -i ${MERGE_BASE}' to drop or squash" >&2
-  echo "  the offending commit's state-file hunks before the push." >&2
+  echo "  Fix: Cherry-pick surgery — rebuild the branch without the state-file commits." >&2
+  echo "  Run check-permanent-conflict.sh for guided surgery steps:" >&2
+  echo "    TASK_ID=<id> bash .hyperloop/checks/check-permanent-conflict.sh" >&2
+  echo "" >&2
+  echo "  Manual steps:" >&2
+  echo "    git fetch origin" >&2
+  echo "    git checkout -b <branch-name>-surgery origin/main" >&2
+  echo "    # identify implementation commits (exclude state-file commits):" >&2
+  echo "    git log --oneline ${MERGE_BASE}..origin/<branch-name> -- ':!.hyperloop/state/'" >&2
+  echo "    git cherry-pick <oldest-impl-sha> ... <newest-impl-sha>" >&2
+  echo "    bash .hyperloop/checks/check-state-commit-history.sh  # must exit 0" >&2
+  echo "    git push --force origin HEAD:<branch-name>" >&2
   exit 1
 fi
 
