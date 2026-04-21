@@ -1,51 +1,50 @@
 ---
 task_id: task-011
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-## Summary
+All checks pass.
 
-Implemented and verified the `POST /api/todos` endpoint per the Interface Spec
-(`specs/interface.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca`).
+## Verification Summary
 
-## What was done
+### Commit Trailers
+- `Spec-Ref: specs/interface.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca` ✅
+- `Task-Ref: task-011` ✅
 
-The `POST /api/todos` endpoint was implemented at
-`server/api/todos/index.post.ts`. The implementation:
+### Test Suite
+All 189 tests pass after `nuxt prepare` (required for worktree — `.nuxt/tsconfig.json` not
+present in the worktree until generated):
 
-- Reads the request body and validates that `title` is a `string` field
-  (returns 400 `BAD_REQUEST` if missing or not a string).
-- Constructs a `TodoTitle` value object, which enforces the 1–500 character
-  invariant (returns 422 `INVALID_TITLE` if the domain rejects the title).
-- Invokes `Todo.create(title)` to produce a new aggregate with a UUID v4 id,
-  `active` status, and ISO 8601 UTC `createdAt`/`updatedAt` timestamps.
-- Persists the new Todo via `repo.save(todo)` (synchronous `better-sqlite3` driver).
-- Returns HTTP 201 with the full `TodoResource` JSON representation.
+- 111 app/UI tests (`vitest run`)
+- 78 server/API + infrastructure tests (`vitest run --config vitest.infra.config.ts`)
 
-Supporting modules already in place and confirmed working:
-- `server/api/todos/_resource.ts` — `toResource()` mapper (domain → JSON)
-- `server/plugins/database.ts` — `getTodoRepository()` accessor
-- `server/utils/errorFormatter.ts` — spec-compliant error envelope
+All 6 POST-specific test cases from the TDD Plan pass:
 
-## Test coverage
+1. Valid title → 201 with full `TodoResource` including UUID v4 `id` ✅
+2. Created todo persisted and retrievable via GET ✅
+3. Empty title → 422 `INVALID_TITLE` ✅
+4. Whitespace-only title → 422 `INVALID_TITLE` ✅
+5. Missing `title` field → 400 `BAD_REQUEST` ✅
+6. Non-string `title` field → 400 `BAD_REQUEST` ✅
 
-All 6 POST-specific test cases in `server/api/todos/todos.test.ts` pass:
+### Check Scripts
+No `.hyperloop/checks/` directory present — no check scripts to run.
 
-1. Valid title → 201 with full `TodoResource` including UUID v4 `id`
-2. Created todo is persisted and retrievable via `GET /api/todos/:id`
-3. Empty title → 422 `INVALID_TITLE`
-4. Whitespace-only title → 422 `INVALID_TITLE`
-5. Missing `title` field → 400 `BAD_REQUEST`
-6. Non-string `title` field → 400 `BAD_REQUEST`
+### Spec Compliance
 
-Overall test run: **78 tests passed** across all infrastructure and API suites.
+`server/api/todos/index.post.ts` correctly implements the contract:
 
-## Note on task scope
+- Validates `body.title` is a `string` before domain construction (400 `BAD_REQUEST` if not).
+- Constructs `TodoTitle` value object and catches `InvalidTitleError` → 422 `INVALID_TITLE`.
+- Delegates creation to `Todo.create()` — no business logic in the handler.
+- Persists via `SqliteTodoRepository.save()`.
+- Returns HTTP 201 with the full `TodoResource` JSON shape (id, title, status, createdAt, updatedAt).
 
-The REST API route handlers (including this POST endpoint) were committed to
-`main` as part of task-015's implementation. This task (task-011) verifies
-that the POST `/api/todos` endpoint is spec-compliant, all relevant tests pass,
-and the implementation correctly coordinates the domain layer without
-containing business logic.
+Error envelopes match the spec: `{ error: "ERROR_CODE_CONSTANT", message: "..." }`.
+
+### Note on Implementation Origin
+The route handler was committed to `main` as part of task-015. This branch carries the
+implementer's sign-off and state-file updates. The implementation is present, tested, and
+spec-compliant; the verification is valid.
