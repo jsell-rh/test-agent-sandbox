@@ -1,33 +1,58 @@
 ---
 task_id: task-006
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-Created the database migration files as specified in `specs/persistence.spec.md`.
+## Summary
 
-## What was done
+All checks pass. The migration file is correct, complete, and spec-aligned.
 
-- Created `server/infrastructure/persistence/migrations/001_create_todos.sql`
-  — Initial migration that creates the `todos` table with:
-    - `id` (TEXT, PK) — TodoId (UUID v4)
-    - `title` (TEXT NOT NULL) — TodoTitle (max 500 chars, validated by domain before write)
-    - `status` (TEXT NOT NULL, CHECK IN ('active','completed')) — TodoStatus
-    - `created_at` (TEXT NOT NULL) — ISO 8601 UTC Timestamp
-    - `updated_at` (TEXT NOT NULL) — ISO 8601 UTC Timestamp
-  — Two supporting indexes:
-    - `idx_todos_status` on `status` (for `WHERE status = ?` filter queries)
-    - `idx_todos_created_at` on `created_at DESC` (for newest-first ordering)
-  — Uses `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS` to make
-    re-running migrations idempotent (no errors, no duplicate tables) as required.
+## Checks Performed
 
-## Spec alignment
+### 1. Spec alignment — PASS
 
-- Schema matches the spec verbatim (TEXT for UUID/timestamps for SQLite portability)
-- No soft-delete column (TodoDeleted = hard delete)
-- CHECK constraint on status is a safety net; primary validation is in the Aggregate
-- Indexes match both the names and column/order specified in the spec
-- File named `001_create_todos.sql` exactly as specified in the Migration Strategy section
-- `schema_migrations` bootstrap table is left to the MigrationRunner (task-007) as it
-  must exist before any migration runs — not a migration file itself
+Compared `server/infrastructure/persistence/migrations/001_create_todos.sql` against `specs/persistence.spec.md`:
+
+- **Table name**: `todos` ✓
+- **Columns**: `id TEXT NOT NULL PRIMARY KEY`, `title TEXT NOT NULL`, `status TEXT NOT NULL CHECK (status IN ('active', 'completed'))`, `created_at TEXT NOT NULL`, `updated_at TEXT NOT NULL` — matches spec verbatim ✓
+- **No soft-delete column** — correct per spec ✓
+- **Index `idx_todos_status`** on `todos (status)` — matches spec ✓
+- **Index `idx_todos_created_at`** on `todos (created_at DESC)` — matches spec ✓
+- **File name** `001_create_todos.sql` — matches spec Migration Strategy section ✓
+- **File path** `server/infrastructure/persistence/migrations/` — appropriate infrastructure location ✓
+- **`schema_migrations` table** omitted — correct; the spec assigns its creation to the MigrationRunner, not to migration 001 ✓
+
+### 2. SQL syntax — PASS
+
+Executed the migration against an in-memory SQLite 3.47.2 instance; no errors.
+
+```
+sqlite3 :memory: < 001_create_todos.sql  →  exit 0
+```
+
+Schema introspection confirmed 5 columns with correct NOT NULL constraints and 2 named indexes.
+
+### 3. Idempotency — PASS
+
+Ran the migration twice against the same in-memory database; `IF NOT EXISTS` guards on both `CREATE TABLE` and `CREATE INDEX` prevented any errors, satisfying the spec requirement:
+
+> Re-running migrations is idempotent (no errors, no duplicate tables)
+
+### 4. Commit trailers — PASS
+
+Commit `4b28507` contains both required trailers:
+
+```
+Spec-Ref: specs/persistence.spec.md@b893040c2e865117bb3d18e86b80a45528bedbb5
+Task-Ref: task-006
+```
+
+### 5. Check scripts (`.hyperloop/checks/`) — N/A
+
+No check scripts present in the repository.
+
+### 6. Test suite — N/A
+
+No test suite exists yet (project skeleton only; no `package.json`, `Makefile`, or test files). Tests for the repository implementation are scoped to task-007 and beyond per the TDD plan in the spec.
