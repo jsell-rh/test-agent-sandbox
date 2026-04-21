@@ -1,30 +1,55 @@
 ---
 task_id: task-009
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-## Summary
+All checks pass.
 
-Implemented the spec-compliant API error envelope for the Nuxt 4 + Nitro TODO application.
+## Verification Summary
 
-### Files created
+### Branch
+`hyperloop/task-009` — confirmed as current branch.
 
-- `server/utils/errorFormatter.ts` — Pure `formatApiError(err)` function that maps any thrown value to a `{ statusCode, body }` tuple. Handles domain errors (InvalidTitleError → 422, TodoNotFoundError → 404), H3 errors with our data envelope (pass-through), generic H3 errors (derive code from status code), and unknown errors (500 INTERNAL_ERROR with console.error).
+### Commit Trailers
+- `Spec-Ref: specs/interface.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca` ✓
+- `Task-Ref: task-009` ✓
 
-- `server/plugins/apiErrorHandler.ts` — Nitro plugin using the `error` hook to intercept unhandled errors on `/api/` routes and respond with the spec-compliant envelope. Sets `event.handled = true` to prevent Nitro's default error response.
+### Check Scripts
+No `.hyperloop/checks/` directory — no check scripts to run.
 
-- `server/utils/errors.test.ts` — 8 unit tests covering all 5 functions in `errors.ts`.
+### Test Suite
+Both test configurations run clean:
 
-- `server/utils/errorFormatter.test.ts` — 7 unit tests covering all branches of `formatApiError`.
+- `npx vitest run --config vitest.infra.config.ts` — **47 tests, 4 files, all passed**
+  - `server/utils/errors.test.ts` — 8 tests
+  - `server/utils/errorFormatter.test.ts` — 7 tests (new)
+  - `server/infrastructure/persistence/MigrationRunner.test.ts` — 9 tests
+  - `server/infrastructure/persistence/SqliteTodoRepository.test.ts` — 23 tests
+- `npx vitest run --config vitest.config.ts` — **13 tests, 1 file, all passed**
 
-### Files modified
+### Spec Compliance
 
-- `server/middleware/errorHandler.ts` — Replaced the broken `sendError` approach with a clean implementation that calls `formatApiError`, then uses `setResponseStatus`, `setHeader`, and `send` to produce the spec-compliant envelope directly.
+Error envelope `{ "error": "ERROR_CODE_CONSTANT", "message": "..." }` implemented correctly:
 
-- `vitest.infra.config.ts` — Added `resolve.alias` for `~` → project root so that `~/server/...` imports in server files resolve correctly during Vitest runs.
+| Status | Code | Implementation |
+|--------|------|----------------|
+| 404 | `TODO_NOT_FOUND` | `TodoNotFoundError` domain class → `formatApiError` ✓ |
+| 422 | `INVALID_TITLE` | `InvalidTitleError` domain class → `formatApiError` ✓ |
+| 400 | `BAD_REQUEST` | H3 400 without data envelope → `statusCodeToErrorCode` ✓ |
+| 500 | `INTERNAL_ERROR` | Unknown/unhandled errors → fallback branch ✓ |
 
-### Verification
+### Architecture Review
 
-All 47 tests pass (`npx vitest run --config vitest.infra.config.ts`): 40 pre-existing + 7 new.
+- `errorFormatter.ts` is a pure function with no H3 event side effects — testable in isolation ✓
+- `errorHandler.ts` middleware installs `_errorHandler` on `event.context` for route-level use ✓
+- `apiErrorHandler.ts` plugin acts as a safety net for errors reaching Nitro unhandled ✓
+- `vitest.infra.config.ts` alias `~ → __dirname` correctly resolves Nitro path aliases in tests ✓
+- `defineNitroPlugin` used without import — correct for Nitro auto-import context ✓
+
+### Minor Observations (non-blocking)
+
+- `statusCodeToErrorCode(404)` returns `TODO_NOT_FOUND` and `statusCodeToErrorCode(422)` returns `INVALID_TITLE`. In the current app scope these are the only uses for these status codes, so the mapping is correct. If non-todo 404s are ever added, revisit.
+- Domain error messages include the class name prefix (e.g. `"InvalidTitleError: blank title"`). This is pre-existing domain behaviour from an earlier task and outside task-009's scope.
+- `console.error` in the unknown-error branch produces expected stderr noise in the test run. The two stderr lines are from intentional test cases exercising that branch.
