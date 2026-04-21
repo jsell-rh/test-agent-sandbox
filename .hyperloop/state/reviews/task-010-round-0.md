@@ -1,34 +1,83 @@
 ---
 task_id: task-010
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-All interface-layer work called for by `specs/interface.spec.md` was already implemented on this branch across prior commits. This pass audited the implementation against every spec requirement and confirmed all tests pass.
+## Verification Summary
 
-## What was verified
+All checks pass. The interface layer — REST API routes, UI application layer, and supporting
+composables — is correctly implemented against `specs/interface.spec.md`.
 
-### REST API contract (server/api/todos/)
+---
 
-- `GET /api/todos` — filter query param (all/active/completed), returns `{ todos, counts }` where counts always reflect ALL todos regardless of filter; invalid filter returns 400. ✅
-- `POST /api/todos` — creates todo via `Todo.create()`, returns 201 with full resource; empty/whitespace title returns 422 INVALID_TITLE; missing/non-string title returns 400. ✅
-- `GET /api/todos/:id` — returns 200 with resource or 404 TODO_NOT_FOUND. ✅
-- `PATCH /api/todos/:id` — partial update for title and/or status; maps status→domain commands (complete/reopen); returns 422 on invalid title, 400 on unknown status, 404 on unknown id. ✅
-- `DELETE /api/todos/:id` — 204 no body on success, 404 on unknown id. ✅
-- `DELETE /api/todos?status=completed` — bulk delete, returns `{ deletedCount }`; 400 on missing/unsupported status param. ✅
-- Error envelope `{ error, message }` consistently applied via `formatApiError` + Nitro plugin. ✅
+## Test Results
 
-### UI application layer (app/)
+- **Infrastructure tests** (`vitest.infra.config.ts`): **78 / 78 passed**
+- **App tests** (`vitest`): **111 / 111 passed**
+- **Total**: **189 tests, 0 failures**
 
-- **Pinia store** (`todos.ts`) — owns todos[], counts, filterCriteria, editingTodoId, loading, errors[]. Client-side `filteredTodos` getter (no extra network request). `addError` auto-dismisses after 5s. ✅
-- **`useApi` composable** — typed wrapper around `$fetch`; covers all six endpoints; normalises 4xx/5xx into `ApiClientError`. ✅
-- **`useTodoActions` composable** — optimistic toggle (rollback on failure), optimistic delete (rollback on failure), clearCompleted (reload on failure), createTodo, updateTitle (empty→delete). ✅
-- **`index.vue` page** — header "todos", new-todo input (Enter creates, Escape clears), todo list ordered newest-first, empty state contextual messages, footer (N items left, filter tabs, Clear completed button only when completedCount>0). ✅
-- **`TodoItem.vue` component** — checkbox with accessible label, title with inline Markdown rendering, double-click edit mode, Enter/blur submits, Escape cancels, empty submit triggers delete. ✅
+No check scripts exist under `.hyperloop/checks/`; none were run.
 
-### Test coverage
+---
 
-- **78 infrastructure tests** (server API integration, repository, migrations, error formatter, error utilities) — all pass. ✅
-- **111 app tests** (store unit tests, TodoItem component tests, index page tests, markdown utility tests) — all pass. ✅
-- Total: **189 tests**, 0 failures.
+## Commit Trailers
+
+The only new commit on this branch above `main` (`88998fc`) carries both required trailers:
+
+```
+Spec-Ref: specs/interface.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca
+Task-Ref: task-010
+```
+
+---
+
+## Spec Compliance — REST API
+
+### GET /api/todos
+- Returns `{ todos, counts }` with correct shape. ✅
+- `filter=active` / `filter=completed` filter the `todos` array while `counts` always reflects **all** todos. ✅
+- `filter=all` (default) returns every todo. ✅
+- Invalid `filter` value → 400 `BAD_REQUEST`. ✅
+- List ordered newest-first (`createdAt` descending). ✅
+
+### POST /api/todos
+- Valid title → 201 with full `TodoResource` (UUID v4 id, ISO 8601 timestamps). ✅
+- Empty / whitespace title → 422 `INVALID_TITLE`. ✅
+- Missing or non-string `title` → 400 `BAD_REQUEST`. ✅
+
+### GET /api/todos/:id
+- Known id → 200 with `TodoResource`. ✅
+- Unknown id → 404 `TODO_NOT_FOUND`. ✅
+
+### PATCH /api/todos/:id
+- `status: "completed"` → invokes `todo.complete()`. ✅
+- `status: "active"` → invokes `todo.reopen()`. ✅
+- Already-completed + `status: "completed"` → 200 (idempotent). ✅
+- Unknown id → 404 `TODO_NOT_FOUND`. ✅
+- Invalid title → 422 `INVALID_TITLE`. ✅
+- Unknown status → 400 `BAD_REQUEST`. ✅
+
+### DELETE /api/todos/:id
+- Existing todo → 204 no body. ✅
+- Unknown id → 404 `TODO_NOT_FOUND`. ✅
+
+### DELETE /api/todos?status=completed
+- Bulk deletes all completed; returns `{ deletedCount }`. ✅
+- No completed todos → 200 `{ deletedCount: 0 }`. ✅
+- Missing or unsupported `status` param → 400 `BAD_REQUEST`. ✅
+
+### Error Envelope
+- All 4xx/5xx responses use `{ error, message }` via `formatApiError` + Nitro plugin. ✅
+
+---
+
+## Spec Compliance — UI Application Layer
+
+- **Pinia store** (`todos.ts`): owns `todos[]`, `counts`, `filterCriteria`, `editingTodoId`, `errors[]`; `filteredTodos` getter is client-side (no extra network request); `addError` auto-dismisses after 5 s. ✅
+- **`useApi` composable**: typed wrapper for all six endpoints; normalises 4xx/5xx into `ApiClientError`. ✅
+- **`useTodoActions` composable**: optimistic toggle with rollback, optimistic delete with rollback, `clearCompleted` reloads on failure, empty title on update → delete. ✅
+- **`index.vue`**: header "todos", new-todo input (Enter creates, Escape clears without API call), todo list newest-first, contextual empty-state messages, footer with active count / filter tabs / "Clear completed" (conditional). ✅
+- **`TodoItem.vue`**: accessible checkbox with associated label, double-click edit mode, Enter/blur submits, Escape cancels, empty submit deletes, delete button visible on hover. ✅
+- Toast errors surface API errors as inline non-blocking messages, auto-dismiss after 5 s. ✅
