@@ -20,6 +20,7 @@ REQUIRED_SCRIPTS=(
   "check-rebase-state.sh"
   "check-no-conflicts.sh"
   "check-merge-simulation.sh"
+  "check-push-sync.sh"
 )
 
 all_ok=true
