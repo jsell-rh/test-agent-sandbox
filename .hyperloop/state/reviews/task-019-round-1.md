@@ -1,7 +1,7 @@
 ---
 task_id: task-019
 round: 1
-role: implementer
+role: verifier
 verdict: pass
 ---
 
@@ -35,7 +35,9 @@ Checks infrastructure is healthy.
 EXIT_CODE: 0
 ```
 
-`check-infra.sh` was missing in round-0. **Created** `.hyperloop/checks/check-infra.sh` (executable, exits 0 on healthy infra). ✓
+`check-infra.sh` was absent in round-0 (BLOCKER-1). The fix commit `78f5391`
+created it as an executable script that verifies `check-deps.sh` exists and is
+executable, and exits 0 on a healthy infrastructure. ✓
 
 ---
 
@@ -59,21 +61,23 @@ All dependencies satisfied. ✓
 ```
 $ npx nuxi prepare
 Types generated in .nuxt.
+EXIT: 0
 
 $ npm test
 
 > test
 > vitest run && vitest run --config vitest.infra.config.ts
 
- ✓ app/stores/todos.spec.ts (43 tests) 27ms
- ✓ app/composables/useTodoActions.spec.ts (35 tests) 29ms
- ✓ app/utils/markdown.spec.ts (31 tests) 53ms
- ✓ app/components/TodoItem.spec.ts (15 tests) 67ms
- ✓ app/pages/index.spec.ts (33 tests) 180ms
+ ✓ app/utils/markdown.spec.ts (31 tests) 40ms
+ ✓ app/stores/todos.spec.ts (43 tests) 32ms
+ ✓ app/composables/useTodoActions.spec.ts (35 tests) 33ms
+ ✓ app/components/TodoItem.spec.ts (15 tests) 57ms
+ ✓ app/pages/index.spec.ts (33 tests) 175ms
 
  Test Files  5 passed (5)
       Tests  157 passed (157)
-   Duration  1.51s
+   Start at  15:52:58
+   Duration  1.50s
 
  ✓ server/utils/errors.test.ts (8 tests)
  ✓ server/utils/errorFormatter.test.ts (7 tests)
@@ -83,36 +87,81 @@ $ npm test
 
  Test Files  5 passed (5)
       Tests  78 passed (78)
-   Duration  524ms
+   Duration  465ms
 ```
 
-All 235 tests pass (157 app + 78 infra). ✓
+All 235 tests pass (157 app + 78 infra). The `stderr` lines from
+`errorFormatter.test.ts` are expected — those tests deliberately exercise the
+unhandled-error logging path and are not failures. ✓
+
+`todos.spec.ts` now has 43 tests (up from 42 in round-0), the new test being the
+fake-timer assertion added to resolve FINDING-1.
 
 ---
 
-## Changes in This Round
+## Commit Trailers
 
-### BLOCKER-1 resolved — `check-infra.sh` created
-
-Created `.hyperloop/checks/check-infra.sh` (executable). The script validates:
-1. The `.hyperloop/checks/` directory exists.
-2. `check-deps.sh` exists and is executable.
-
-Exits 0 on healthy infrastructure. ✓
-
-### FINDING-1 resolved — Auto-dismiss timer test added
-
-Added one test to `app/stores/todos.spec.ts` (error management describe block):
+All three branch commits carry both required trailers:
 
 ```
-it('auto-dismisses an error toast after 5 seconds', ...)
+Spec-Ref: specs/interface.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca
+Task-Ref: task-019
 ```
 
-Uses `vi.useFakeTimers()` and `vi.advanceTimersByTime()` to assert:
-- At t=4999ms: toast still present (timer has not fired yet).
-- At t=5000ms: toast dismissed (setTimeout callback fired via `dismissError`).
+`Spec-Ref` matches `spec_ref` in the task front-matter exactly on every commit. ✓
 
-Verifies the exact scheduled invocation in `addError` (`setTimeout(() => this.dismissError(id), 5_000)`), not just the manual dismiss API in isolation. ✓
+---
+
+## Round-0 Findings Resolution
+
+### BLOCKER-1 — `check-infra.sh` missing ✓ RESOLVED
+
+Fix commit `78f5391` adds `.hyperloop/checks/check-infra.sh` as an executable
+`bash` script (`chmod +x` confirmed by `ls -la` output: `-rwxr-xr-x`). The
+script:
+
+1. Verifies the `.hyperloop/checks/` directory exists.
+2. Verifies `check-deps.sh` exists and is executable.
+3. Exits 0 when both conditions hold; exits 1 and prints a diagnostic to stderr
+   otherwise.
+
+Verified by running the script above — exits 0 with message
+`"Checks infrastructure is healthy."` ✓
+
+### FINDING-1 — No fake-timer test for the 5-second auto-dismiss ✓ RESOLVED
+
+Fix commit `78f5391` adds the following test to `app/stores/todos.spec.ts` in
+the `error management` describe block:
+
+```ts
+// spec NFR: "auto-dismiss after 5s"
+it('auto-dismisses an error toast after 5 seconds', () => {
+  vi.useFakeTimers()
+  try {
+    const store = useTodosStore()
+    store.addError('INTERNAL_ERROR', 'Transient error')
+    expect(store.errors).toHaveLength(1)
+
+    // Advance time to just before the 5 s threshold — toast must still be present.
+    vi.advanceTimersByTime(4_999)
+    expect(store.errors).toHaveLength(1)
+
+    // Advance the remaining millisecond — setTimeout fires, toast dismissed.
+    vi.advanceTimersByTime(1)
+    expect(store.errors).toHaveLength(0)
+  } finally {
+    vi.useRealTimers()
+  }
+})
+```
+
+The test:
+- Uses `vi.useFakeTimers()` and `vi.advanceTimersByTime()` as required by the
+  guidelines rule on `setTimeout`/`setInterval` usage.
+- Asserts the exact boundary: error present at 4,999 ms, dismissed at 5,000 ms.
+- Uses `try/finally` to guarantee `vi.useRealTimers()` runs even on assertion
+  failure, preventing timer leakage into subsequent tests.
+- Verified passing as part of the 43-test `todos.spec.ts` run above. ✓
 
 ---
 
@@ -120,11 +169,13 @@ Verifies the exact scheduled invocation in `addError` (`setTimeout(() => this.di
 
 | Check | Result |
 |---|---|
-| `check-infra.sh` | PASS |
-| `check-deps.sh` | PASS |
+| `check-infra.sh` | PASS (exit 0) |
+| `check-deps.sh` | PASS (exit 0) |
 | Test suite (235 tests) | PASS |
-| Commit trailers | PASS |
-| All 4 spec failure modes covered | PASS (from round-0) |
-| Auto-dismiss timer tested | PASS |
+| Commit trailers (all 3 commits) | PASS |
+| All 4 spec failure modes covered | PASS (unchanged from round-0) |
+| Auto-dismiss timer test (fake timers) | PASS |
+| BLOCKER-1 resolved | PASS |
+| FINDING-1 resolved | PASS |
 
-All round-0 findings resolved. Task is complete.
+All round-0 findings resolved. No new findings. Task is complete.
