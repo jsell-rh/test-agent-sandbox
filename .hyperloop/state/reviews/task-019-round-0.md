@@ -4,6 +4,7 @@ round: 0
 role: verifier
 verdict: fail
 ---
+
 ## Task Front-Matter (verbatim)
 
 ```

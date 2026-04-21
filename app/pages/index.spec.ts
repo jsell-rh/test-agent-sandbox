@@ -517,3 +517,102 @@ describe('initial data loading', () => {
     expect(mockLoadTodos).toHaveBeenCalledOnce()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Failure modes — createTodo (spec: "API returns 500 on create")
+// ---------------------------------------------------------------------------
+
+describe('failure modes — createTodo', () => {
+  it('does NOT clear the input when createTodo returns false (API error)', async () => {
+    // Simulate API failure: createTodo returns false (error has been surfaced
+    // to the store by the real composable; the mock just returns false here).
+    mockCreateTodo.mockResolvedValue(false)
+
+    const wrapper = mountPage()
+    await wrapper.vm.$nextTick()
+
+    const input = wrapper.find('.todo-new__input')
+    await input.setValue('Important task')
+    await input.trigger('keydown', { key: 'Enter' })
+    await wrapper.vm.$nextTick()
+
+    // Input must NOT be cleared — user should be able to retry.
+    // (spec: "Input not cleared; error message displayed; UI state unchanged")
+    expect((input.element as HTMLInputElement).value).toBe('Important task')
+  })
+
+  it('clears the input when createTodo returns true (success)', async () => {
+    mockCreateTodo.mockResolvedValue(true) // default, but explicit for clarity
+
+    const wrapper = mountPage()
+    await wrapper.vm.$nextTick()
+
+    const input = wrapper.find('.todo-new__input')
+    await input.setValue('Task to create')
+    await input.trigger('keydown', { key: 'Enter' })
+    await wrapper.vm.$nextTick()
+
+    expect((input.element as HTMLInputElement).value).toBe('')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Error toast display
+// ---------------------------------------------------------------------------
+
+describe('error toast display', () => {
+  it('renders a toast when the store has an error', async () => {
+    const store = useTodosStore()
+    store.addError('INTERNAL_ERROR', 'Something went wrong')
+
+    const wrapper = mountPage()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.todo-toast').exists()).toBe(true)
+    expect(wrapper.find('.todo-toast__message').text()).toBe('Something went wrong')
+  })
+
+  it('renders multiple toasts for multiple errors', async () => {
+    const store = useTodosStore()
+    store.addError('INTERNAL_ERROR', 'First error')
+    store.addError('INVALID_TITLE', 'Second error')
+
+    const wrapper = mountPage()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.findAll('.todo-toast')).toHaveLength(2)
+  })
+
+  it('dismisses a toast when its close button is clicked', async () => {
+    const store = useTodosStore()
+    store.addError('INTERNAL_ERROR', 'Dismissible error')
+
+    const wrapper = mountPage()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.todo-toast').exists()).toBe(true)
+
+    await wrapper.find('.todo-toast__dismiss').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(store.errors).toHaveLength(0)
+  })
+
+  it('toast has role="alert" for screen reader announcements', async () => {
+    const store = useTodosStore()
+    store.addError('INTERNAL_ERROR', 'Accessible error')
+
+    const wrapper = mountPage()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.todo-toast[role="alert"]').exists()).toBe(true)
+  })
+
+  it('toast area is not rendered when there are no errors', async () => {
+    const wrapper = mountPage()
+    await wrapper.vm.$nextTick()
+
+    // No toasts should appear by default
+    expect(wrapper.findAll('.todo-toast')).toHaveLength(0)
+  })
+})
