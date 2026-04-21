@@ -1,0 +1,308 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Design System — Enterprise Todo Application
+   Variables, reset, typography, and reusable utilities.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Custom Properties ─────────────────────────────────────────────────── */
+:root {
+  /* Colour palette — neutral slate */
+  --color-bg:           #f8f9fc;
+  --color-surface:      #ffffff;
+  --color-border:       #e2e5ed;
+  --color-border-focus: #6366f1;   /* indigo-500 */
+
+  --color-text-primary:   #111827; /* gray-900 */
+  --color-text-secondary: #6b7280; /* gray-500 */
+  --color-text-muted:     #9ca3af; /* gray-400 */
+  --color-text-inverse:   #ffffff;
+
+  --color-accent:         #6366f1; /* indigo-500 */
+  --color-accent-hover:   #4f46e5; /* indigo-600 */
+  --color-accent-light:   #eef2ff; /* indigo-50 */
+
+  --color-success:        #10b981; /* emerald-500 */
+  --color-danger:         #ef4444; /* red-500 */
+  --color-danger-light:   #fef2f2; /* red-50 */
+
+  --color-completed-text: #9ca3af; /* struck-through todo text */
+  --color-checkbox:       var(--color-accent);
+
+  /* Typography */
+  --font-family:   'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-xs:  0.75rem;   /* 12px */
+  --font-size-sm:  0.875rem;  /* 14px */
+  --font-size-md:  1rem;      /* 16px */
+  --font-size-lg:  1.125rem;  /* 18px */
+  --font-size-xl:  1.25rem;   /* 20px */
+  --font-size-2xl: 1.5rem;    /* 24px */
+  --font-size-3xl: 1.875rem;  /* 30px */
+  --font-weight-normal:   400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+  --line-height-tight:  1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Shape */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+  --radius-full: 9999px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+
+  /* Transitions */
+  --transition-fast:   100ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow:   300ms ease;
+
+  /* Layout */
+  --content-max-width: 680px;
+}
+
+/* ── Reset ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img, svg, video {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+}
+
+p, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+/* ── Focus ──────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ── Markdown Content ───────────────────────────────────────────────────── */
+/*
+  Styles for rendered markdown inside todo titles.
+  Scoped to .markdown-content to avoid global interference.
+*/
+.markdown-content {
+  line-height: var(--line-height-relaxed);
+  color: inherit;
+}
+
+/* Inline elements */
+.markdown-content strong { font-weight: var(--font-weight-semibold); }
+.markdown-content em     { font-style: italic; }
+.markdown-content del    { text-decoration: line-through; color: var(--color-text-muted); }
+
+.markdown-content code {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875em;
+  background: var(--color-border);
+  padding: 0.125em 0.375em;
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.markdown-content a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--transition-fast);
+}
+
+.markdown-content a:hover {
+  color: var(--color-accent-hover);
+}
+
+/* Block elements — these appear in multiline note mode, not in list titles */
+.markdown-content p {
+  margin-bottom: var(--space-2);
+}
+.markdown-content p:last-child { margin-bottom: 0; }
+
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: var(--space-5);
+  margin-bottom: var(--space-2);
+}
+.markdown-content li { margin-bottom: var(--space-1); }
+
+.markdown-content blockquote {
+  border-left: 3px solid var(--color-border-focus);
+  padding-left: var(--space-3);
+  color: var(--color-text-secondary);
+  margin: var(--space-2) 0;
+}
+
+.markdown-content pre {
+  background: var(--color-text-primary);
+  color: #e5e7eb;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: var(--space-2) 0;
+  font-size: var(--font-size-sm);
+}
+
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* ── Utility Classes ────────────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Transitions ────────────────────────────────────────────────────────── */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-normal);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all var(--transition-normal);
+  overflow: hidden;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+.slide-down-enter-to,
+.slide-down-leave-from {
+  max-height: 200px;
+}
+
+/* ── Button Base ────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast),
+              border-color var(--transition-fast), box-shadow var(--transition-fast);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--color-accent);
+  color: var(--color-text-inverse);
+  border-color: var(--color-accent);
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border-color: transparent;
+}
+.btn-ghost:hover:not(:disabled) {
+  background-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.btn-danger {
+  background-color: transparent;
+  color: var(--color-danger);
+  border-color: transparent;
+}
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--color-danger-light);
+}

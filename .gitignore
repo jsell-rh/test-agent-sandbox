@@ -1,1 +1,29 @@
 worktrees/
+
+# Nuxt build output
+.nuxt/
+.output/
+dist/
+
+# Node
+node_modules/
+.pnpm-store/
+
+# Data
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Editor
+.DS_Store
+.idea/
+*.swp
+*.swo
+
+# Test
+coverage/
