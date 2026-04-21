@@ -15,6 +15,7 @@ CHECKS_DIR="$(dirname "$0")"
 REQUIRED_SCRIPTS=(
   "check-deps.sh"
   "check-task-meta.sh"
+  "check-task-branch.sh"
   "check-timer-tests.sh"
   "check-rebase-clean.sh"
   "check-rebase-state.sh"
