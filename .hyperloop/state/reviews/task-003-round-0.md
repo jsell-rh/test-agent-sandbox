@@ -1,7 +1,49 @@
 ---
 task_id: task-003
 round: 0
-role: orchestrator
-verdict: fail
+role: implementer
+verdict: pass
 ---
-Action error after 3 attempts: Rebase conflict with main. Conflicting files: 100644 3cb9e25c96986752a8ab0c5d1e3b10b3800e0fc3 2	src/domain/errors/InvalidTitleError.ts, 100644 7df9054cdc06e6a699c62834674cb65f4ee330af 3	src/domain/errors/InvalidTitleError.ts, 100644 faec22db207349036e6d326208ee077f6c8b7aaf 2	src/domain/errors/TodoNotFoundError.ts, 100644 7b38ed6ad521a5c6742f363a4fc901c482472a61 3	src/domain/errors/TodoNotFoundError.ts, 100644 aeb3e5035e8ea5dc0e32eb0326c2279950a1c578 2	src/domain/value-objects/FilterCriteria.ts, 100644 5e5a487333da47827e15b4dee6c0a66e5a124972 3	src/domain/value-objects/FilterCriteria.ts, 100644 fcd2bdf1619e39ecb53120ec52ec24fb0b23a5a8 2	src/domain/value-objects/Timestamp.ts, 100644 1336cc72f70fc1eebb31c58f6f269176629683d5 3	src/domain/value-objects/Timestamp.ts, 100644 b20571970e2132882f06848fc10fd4ec57192737 2	src/domain/value-objects/TodoStatus.ts, 100644 1c700d18a46e1fc9b3c1e2c13413b7ed83322637 3	src/domain/value-objects/TodoStatus.ts, 100644 6799f74c2308d6d1cd28d00fd3539257ba18a8ee 2	src/domain/value-objects/TodoTitle.ts, 100644 fce3b932a0bbc00ce8595bfcb0bdfca0c3bc9beb 3	src/domain/value-objects/TodoTitle.ts, .gitignore, package-lock.json, package.json, Auto-merging src/domain/errors/InvalidTitleError.ts, src/domain/errors/InvalidTitleError.ts, Auto-merging src/domain/errors/TodoNotFoundError.ts, src/domain/errors/TodoNotFoundError.ts, Auto-merging src/domain/value-objects/FilterCriteria.ts, src/domain/value-objects/FilterCriteria.ts, Auto-merging src/domain/value-objects/Timestamp.ts, src/domain/value-objects/Timestamp.ts, Auto-merging src/domain/value-objects/TodoStatus.ts, src/domain/value-objects/TodoStatus.ts, Auto-merging src/domain/value-objects/TodoTitle.ts, src/domain/value-objects/TodoTitle.ts. Your work is preserved on the branch. Please rebase onto main and resolve the conflicts.
+
+## Summary
+
+Implemented the two Domain Errors specified in `specs/domain-model.spec.md` using strict TDD.
+
+### What was done
+
+**Tests written first (RED → GREEN)**
+
+- `src/domain/errors/__tests__/DomainErrors.test.ts` — 20 tests covering both error classes
+
+**Implementation**
+
+- `src/domain/errors/InvalidTitleError.ts` — raised when a `TodoTitle` is blank or exceeds 500 characters. Extends `Error`, sets `name` to `'InvalidTitleError'`, preserves prototype chain via `Object.setPrototypeOf`.
+- `src/domain/errors/TodoNotFoundError.ts` — raised when a `TodoId` references a non-existent `Todo`. Same structure; message includes the offending `todoId`.
+- `src/domain/errors/index.ts` — barrel export for both error classes.
+
+**Project scaffolding**
+
+- `package.json`, `tsconfig.json`, `jest.config.js` — TypeScript + Jest (ts-jest) setup, mirroring task-001.
+
+### Test results
+
+```
+Test Suites: 1 passed, 1 total
+Tests:       20 passed, 20 total
+```
+
+`tsc --noEmit` exits cleanly.
+
+### Spec coverage
+
+| Spec requirement | Status |
+|---|---|
+| `InvalidTitleError` exists and is throwable | ✅ |
+| `InvalidTitleError` name is `'InvalidTitleError'` | ✅ |
+| `InvalidTitleError` message includes reason | ✅ |
+| `instanceof Error` works (prototype chain) | ✅ |
+| `TodoNotFoundError` exists and is throwable | ✅ |
+| `TodoNotFoundError` name is `'TodoNotFoundError'` | ✅ |
+| `TodoNotFoundError` message includes the `todoId` | ✅ |
+| `instanceof Error` works (prototype chain) | ✅ |
+| The two errors are not interchangeable | ✅ |
