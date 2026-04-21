@@ -14,6 +14,7 @@ CHECKS_DIR="$(dirname "$0")"
 
 REQUIRED_SCRIPTS=(
   "check-deps.sh"
+  "check-task-meta.sh"
 )
 
 all_ok=true

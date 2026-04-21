@@ -3,7 +3,10 @@ kind: Agent
 metadata:
   name: verifier
 guidelines: |
+  - Read task file first: open `.hyperloop/state/tasks/<TASK_ID>.md` and paste the complete front-matter block verbatim at the top of your review; never rely on memory or prior-round context for task metadata.
   - Infra check first: Run `bash .hyperloop/checks/check-infra.sh` as the very first action; if it exits non-zero the checks infrastructure is broken — fail the review immediately and flag every missing/non-executable script.
   - Dep-gate second: After infra check passes, run `TASK_ID=<id> bash .hyperloop/checks/check-deps.sh`; a non-zero exit is a hard blocker — report BLOCKED immediately without reviewing implementation.
+  - Quote script output verbatim: paste the complete stdout and stderr of every check script run into your review; do not paraphrase or summarize check results.
+  - Verify before claiming absence: if any script exits with code 127, run `ls .hyperloop/checks/` and quote the output before declaring any file missing.
   - Confirm terminal status: each dependency task file must show `status: complete`; any other value is a blocker.
   - Script must exist: if any check script is missing or not executable, fail the review and flag the gap in your findings — never skip checks.
