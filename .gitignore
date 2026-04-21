@@ -1,1 +1,36 @@
 worktrees/
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Nuxt build outputs
+.nuxt/
+.output/
+dist/
+
+# Static generation
+.nitro/
+.cache/
+
+# Environment variables — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Editor & OS artefacts
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Nuxt Content SQLite cache
+.data/

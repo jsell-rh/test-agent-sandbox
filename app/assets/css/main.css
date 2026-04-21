@@ -1,0 +1,148 @@
+/* ─────────────────────────────────────────────
+   Enterprise Platform — global stylesheet
+   @nuxt/ui (Tailwind v4) handles the bulk of
+   the utility classes. This file adds custom
+   brand tokens and typography refinements.
+   ───────────────────────────────────────────── */
+
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* ── Brand color tokens ─────────────────────── */
+:root {
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+  --color-brand-950: #172554;
+
+  /* Semantic aliases */
+  --color-primary: var(--color-brand-600);
+  --color-primary-hover: var(--color-brand-700);
+  --color-primary-active: var(--color-brand-800);
+
+  /* Surface colours (light mode) */
+  --color-surface: #ffffff;
+  --color-surface-raised: #f8fafc;
+  --color-surface-overlay: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-border-muted: #f1f5f9;
+}
+
+.dark {
+  /* Surface colours (dark mode) */
+  --color-surface: #0f172a;
+  --color-surface-raised: #1e293b;
+  --color-surface-overlay: #334155;
+  --color-border: #334155;
+  --color-border-muted: #1e293b;
+}
+
+/* ── Global reset / base ────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: theme('colors.slate.900');
+  font-family: theme('fontFamily.sans');
+  line-height: 1.6;
+}
+
+.dark body {
+  color: theme('colors.slate.100');
+}
+
+/* ── Typography for markdown content ───────── */
+.prose {
+  --tw-prose-body: theme('colors.slate.700');
+  --tw-prose-headings: theme('colors.slate.900');
+  --tw-prose-links: theme('colors.blue.600');
+  --tw-prose-bold: theme('colors.slate.900');
+  --tw-prose-counters: theme('colors.slate.500');
+  --tw-prose-bullets: theme('colors.slate.400');
+  --tw-prose-hr: theme('colors.slate.200');
+  --tw-prose-quotes: theme('colors.slate.700');
+  --tw-prose-quote-borders: theme('colors.blue.300');
+  --tw-prose-captions: theme('colors.slate.500');
+  --tw-prose-code: theme('colors.blue.700');
+  --tw-prose-pre-code: theme('colors.slate.100');
+  --tw-prose-pre-bg: theme('colors.slate.900');
+  --tw-prose-th-borders: theme('colors.slate.300');
+  --tw-prose-td-borders: theme('colors.slate.200');
+}
+
+.dark .prose {
+  --tw-prose-body: theme('colors.slate.300');
+  --tw-prose-headings: theme('colors.slate.100');
+  --tw-prose-links: theme('colors.blue.400');
+  --tw-prose-bold: theme('colors.slate.100');
+  --tw-prose-code: theme('colors.blue.300');
+  --tw-prose-pre-bg: theme('colors.slate.950');
+  --tw-prose-th-borders: theme('colors.slate.600');
+  --tw-prose-td-borders: theme('colors.slate.700');
+}
+
+/* ── Code blocks ────────────────────────────── */
+pre code.hljs {
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Inline code */
+:not(pre) > code {
+  background-color: var(--color-surface-overlay);
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.85em;
+  font-family: theme('fontFamily.mono');
+  color: var(--color-primary);
+}
+
+/* ── Navigation ─────────────────────────────── */
+.nav-link {
+  @apply text-sm font-medium text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors duration-150;
+}
+
+.nav-link-active {
+  @apply text-blue-600 dark:text-blue-400;
+}
+
+/* ── Layout helpers ─────────────────────────── */
+.sidebar-link {
+  @apply flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-all duration-150;
+}
+
+.sidebar-link-active {
+  @apply bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300;
+}
+
+/* ── Utility ────────────────────────────────── */
+.container-narrow {
+  @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.section-heading {
+  @apply text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+}
+
+.card-enterprise {
+  @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200;
+}
