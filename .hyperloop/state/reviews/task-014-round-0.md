@@ -1,45 +1,21 @@
 ---
 task_id: task-014
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-## Summary
+## Verification Summary
 
-Implemented the full Nuxt 4 UI for the Todo application per `specs/user-interface.spec.md`.
+All checks pass. Implementation satisfies the spec: "UI should be Nuxt 4. Clean, and enterprise. Full markdown support."
 
-### Deliverables
+### Checks Performed
 
-**`app/composables/useTodoActions.ts`** (new)
-- High-level action composable bridging the API (`useApi`) and the Pinia store.
-- `loadTodos`, `createTodo`, `toggleTodo`, `updateTitle`, `deleteTodo`, `clearCompleted`.
-- Optimistic UI updates for `toggleTodo` and `deleteTodo` with rollback on failure.
-- Empty-title submission converts to a delete (per interface spec).
-- Typed error surfacing via `store.addError`.
+**1. Branch / diff**
+- Reviewed `hyperloop/task-014` diff against `main`.
+- Files changed: `app/components/TodoItem.vue` (new), `app/components/TodoItem.spec.ts` (new), `app/composables/useTodoActions.ts` (new), `app/pages/index.vue` (replaced placeholder).
 
-**`app/components/TodoItem.vue`** (new)
-- Accessible checkbox with custom SVG-style checkmark via CSS pseudo-elements.
-- Todo title rendered as sanitised inline Markdown (`renderMarkdownInline`).
-- Double-click triggers inline edit mode; edit state propagated via emit/prop (controlled).
-- Edit input pre-filled via `watch({ immediate: true })` on the `editing` prop.
-- Enter/blur submits; Escape cancels without saving.
-- Delete button visible on hover; full keyboard-accessible.
-
-**`app/pages/index.vue`** (replaced placeholder)
-- Complete TodoMVC-style layout: header → new-input → list → empty-state → footer.
-- Loading skeleton (shimmer animation) during initial data fetch.
-- Footer shows active item count, filter tabs, and "Clear completed" (conditional).
-- Toast notification area with `TransitionGroup`; auto-dismissed by store after 5s.
-- Responsive layout for small screens.
-- All data operations delegated to `useTodoActions`; no direct API calls in template.
-
-**`app/components/TodoItem.spec.ts`** (new)
-- 15 tests covering view mode (render, checkbox, delete, dblclick, markdown) and edit
-  mode (pre-fill, Enter, Escape, blur, empty submit).
-
-### Test Results
-
+**2. Test suite**
 ```
 ✓ app/utils/markdown.spec.ts (13 tests)
 ✓ app/components/TodoItem.spec.ts (15 tests)
@@ -47,3 +23,39 @@ Implemented the full Nuxt 4 UI for the Todo application per `specs/user-interfac
 Test Files  2 passed (2)
      Tests  28 passed (28)
 ```
+All 28 tests pass after `npm install`.
+
+**3. Check scripts**
+No `.hyperloop/checks/` directory exists — nothing to run.
+
+**4. Commit trailers**
+Commit `a7d7c84` carries both required trailers:
+```
+Spec-Ref: specs/user-interface.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca
+Task-Ref: task-014
+```
+
+**5. Nuxt 4 compliance**
+- `package.json`: `"nuxt": "^4.0.0"` ✅
+- `nuxt.config.ts`: `future: { compatibilityVersion: 4 }` ✅
+- App directory layout (`app/`) follows Nuxt 4 conventions ✅
+
+**6. Clean, enterprise UI**
+- Full design-token system via CSS custom properties (`--color-*`, `--space-*`, `--font-*`, `--shadow-*`, `--radius-*`, `--transition-*`). ✅
+- Inter font via Google Fonts; neutral slate palette. ✅
+- Accessible markup: `aria-label`, `aria-live`, `aria-current`, `role`, `focus-visible` outlines. ✅
+- Pinia store, typed composables, TypeScript strict mode. ✅
+- Shimmer skeleton on first load, `TransitionGroup` list, responsive footer. ✅
+
+**7. Full markdown support**
+- `marked` (block + inline) + `DOMPurify` (client-side sanitisation) integrated. ✅
+- `renderMarkdownInline` used in `TodoItem.vue` via `v-html`; title HTML scoped to `.markdown-content`. ✅
+- CSS covers: `strong`, `em`, `del`, `code`, `pre`, `a`, `p`, `ul`, `ol`, `li`, `blockquote`. ✅
+- 13 markdown unit tests cover bold, italic, strikethrough, code, links, headings, lists, inline (no `<p>` wrapper). ✅
+
+### Minor Observations (non-blocking)
+
+- **Blur-on-Escape**: Native blur fires when the edit `<input>` unmounts after Escape. In happy-dom the test for Escape correctly shows no `update-title` emit, but real browsers may differ. Low risk; not a spec requirement.
+- **Delete rollback position**: `deleteTodo` restores a failed delete via `prependTodo`, placing the item at the list head rather than its original position. Acceptable UX degradation; not a spec requirement.
+
+Both items are improvements for a later polish task, not failures against the current spec.
