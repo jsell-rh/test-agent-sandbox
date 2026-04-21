@@ -2,8 +2,8 @@
 id: task-005
 title: TodoRepository Interface
 spec_ref: specs/domain-model.spec.md@b893040c2e865117bb3d18e86b80a45528bedbb5
-status: not-started
-phase: null
+status: in-progress
+phase: implementer
 deps:
 - task-001
 round: 0
