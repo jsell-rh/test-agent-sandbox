@@ -14,7 +14,7 @@
  *  - "{N} item(s) left reflects current active count after toggling"
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useTodosStore } from '~/stores/todos'
 import type { Todo, TodoCounts } from '~/types/todo'
@@ -457,5 +457,25 @@ describe('error management', () => {
 
     store.dismissError('unknown-id')
     expect(store.errors).toHaveLength(1)
+  })
+
+  // spec NFR: "auto-dismiss after 5s"
+  it('auto-dismisses an error toast after 5 seconds', () => {
+    vi.useFakeTimers()
+    try {
+      const store = useTodosStore()
+      store.addError('INTERNAL_ERROR', 'Transient error')
+      expect(store.errors).toHaveLength(1)
+
+      // Advance time to just before the 5 s threshold — toast must still be present.
+      vi.advanceTimersByTime(4_999)
+      expect(store.errors).toHaveLength(1)
+
+      // Advance the remaining millisecond — setTimeout fires, toast dismissed.
+      vi.advanceTimersByTime(1)
+      expect(store.errors).toHaveLength(0)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
