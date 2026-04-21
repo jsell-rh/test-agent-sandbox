@@ -20,3 +20,6 @@ observability:
     registration_token_env: MATRIX_ACCESS_TOKEN
     invite_user: "@jsell:matrix.jsksell.com"
     verbose: true
+
+notifications:
+  type: github-comment     
