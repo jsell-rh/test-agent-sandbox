@@ -18,7 +18,7 @@
 
 set -uo pipefail
 
-CEILING=10
+CEILING=3
 
 TASK_ID="${TASK_ID:-}"
 if [[ -z "$TASK_ID" ]]; then
