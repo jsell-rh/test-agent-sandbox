@@ -58,11 +58,18 @@ function sanitise(html: string): string {
   if (DOMPurify) {
     return DOMPurify.sanitize(html, {
       ALLOWED_TAGS: [
-        'p', 'br', 'strong', 'em', 'del', 'code', 'pre', 'a',
-        'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'span', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+        // Inline
+        'p', 'br', 'strong', 'em', 'del', 'code', 'a', 'span',
+        // Block
+        'pre', 'ul', 'ol', 'li', 'blockquote',
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'hr',
+        // GFM task lists
+        'input',
+        // GFM tables
+        'table', 'thead', 'tbody', 'tr', 'th', 'td',
       ],
-      ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'id'],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'id', 'type', 'checked', 'disabled'],
       FORCE_BODY: false,
     })
   }
