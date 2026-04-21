@@ -1,0 +1,8 @@
+apiVersion: hyperloop.io/v1
+kind: Agent
+metadata:
+  name: verifier
+guidelines: |
+  - Dep-gate first: Run `TASK_ID=<id> bash .hyperloop/checks/check-deps.sh` as the very first check; a non-zero exit is a hard blocker — report BLOCKED immediately without reviewing implementation.
+  - Confirm terminal status: each dependency task file must show `status: complete`; any other value is a blocker.
+  - Script must exist: if `check-deps.sh` is missing, fail the review and flag the gap in your findings — never skip the dependency check.
