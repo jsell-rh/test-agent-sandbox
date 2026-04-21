@@ -54,7 +54,7 @@ export class Todo {
     const id = uuidv4();
     const now = Timestamp.now().value;
 
-    const todo = new Todo(id, title.value, TodoStatus.active, now, now);
+    const todo = new Todo(id, title.value, TodoStatus.Active, now, now);
     todo._record(new TodoCreated(id, title.value, now));
     return todo;
   }
@@ -87,10 +87,10 @@ export class Todo {
    * no-op — no state change, no event.
    */
   complete(): void {
-    if (this._status === TodoStatus.completed) {
+    if (this._status === TodoStatus.Completed) {
       return; // idempotent no-op
     }
-    this._status = TodoStatus.completed;
+    this._status = TodoStatus.Completed;
     this._updatedAt = Timestamp.now().value;
     this._record(new TodoCompleted(this._id, this._updatedAt));
   }
@@ -102,10 +102,10 @@ export class Todo {
    * no-op — no state change, no event.
    */
   reopen(): void {
-    if (this._status === TodoStatus.active) {
+    if (this._status === TodoStatus.Active) {
       return; // idempotent no-op
     }
-    this._status = TodoStatus.active;
+    this._status = TodoStatus.Active;
     this._updatedAt = Timestamp.now().value;
     this._record(new TodoReopened(this._id, this._updatedAt));
   }

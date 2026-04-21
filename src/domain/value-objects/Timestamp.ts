@@ -6,8 +6,8 @@
 export class Timestamp {
   private readonly _value: string;
 
-  private constructor(isoString: string) {
-    this._value = isoString;
+  constructor(value: string) {
+    this._value = value;
   }
 
   /** Create a Timestamp representing the current moment. */

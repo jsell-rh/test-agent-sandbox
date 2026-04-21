@@ -99,11 +99,11 @@ describe('SqliteTodoRepository.findAll()', () => {
     seedTodo(repo, 'Active task');
     seedTodo(repo, 'Completed task', { complete: true });
 
-    const active = repo.findAll(FilterCriteria.active);
+    const active = repo.findAll(FilterCriteria.Active);
 
     expect(active).toHaveLength(1);
     expect(active[0].title).toBe('Active task');
-    expect(active[0].status).toBe(TodoStatus.active);
+    expect(active[0].status).toBe(TodoStatus.Active);
   });
 
   it('filter: completed excludes active todos', () => {
@@ -111,11 +111,11 @@ describe('SqliteTodoRepository.findAll()', () => {
     seedTodo(repo, 'Active task');
     seedTodo(repo, 'Completed task', { complete: true });
 
-    const completed = repo.findAll(FilterCriteria.completed);
+    const completed = repo.findAll(FilterCriteria.Completed);
 
     expect(completed).toHaveLength(1);
     expect(completed[0].title).toBe('Completed task');
-    expect(completed[0].status).toBe(TodoStatus.completed);
+    expect(completed[0].status).toBe(TodoStatus.Completed);
   });
 
   it('filter: all returns both active and completed todos', () => {
@@ -123,7 +123,7 @@ describe('SqliteTodoRepository.findAll()', () => {
     seedTodo(repo, 'Active task');
     seedTodo(repo, 'Completed task', { complete: true });
 
-    const all = repo.findAll(FilterCriteria.all);
+    const all = repo.findAll(FilterCriteria.All);
 
     expect(all).toHaveLength(2);
   });
@@ -197,7 +197,7 @@ describe('SqliteTodoRepository.save() — update', () => {
     repo.save(todo);
 
     const found = repo.findById(todo.id)!;
-    expect(found.status).toBe(TodoStatus.completed);
+    expect(found.status).toBe(TodoStatus.Completed);
   });
 
   it('createdAt is unchanged after update', () => {

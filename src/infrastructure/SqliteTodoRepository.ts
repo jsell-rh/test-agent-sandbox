@@ -102,13 +102,13 @@ export class SqliteTodoRepository implements TodoRepository {
       let sql: string;
 
       switch (filter) {
-        case FilterCriteria.active:
+        case FilterCriteria.Active:
           sql = "SELECT * FROM todos WHERE status = 'active' ORDER BY created_at DESC";
           break;
-        case FilterCriteria.completed:
+        case FilterCriteria.Completed:
           sql = "SELECT * FROM todos WHERE status = 'completed' ORDER BY created_at DESC";
           break;
-        case FilterCriteria.all:
+        case FilterCriteria.All:
         default:
           sql = 'SELECT * FROM todos ORDER BY created_at DESC';
           break;
@@ -189,7 +189,7 @@ export class SqliteTodoRepository implements TodoRepository {
 
   private _rowToTodo(row: TodoRow): Todo {
     const status =
-      row.status === 'active' ? TodoStatus.active : TodoStatus.completed;
+      row.status === 'active' ? TodoStatus.Active : TodoStatus.Completed;
 
     return Todo.reconstitute(
       row.id,
