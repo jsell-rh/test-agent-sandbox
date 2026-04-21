@@ -139,7 +139,7 @@ p, h1, h2, h3, h4, h5, h6 {
 
 /* ── Markdown Content ───────────────────────────────────────────────────── */
 /*
-  Styles for rendered markdown inside todo titles.
+  Styles for rendered markdown inside todo titles and notes.
   Scoped to .markdown-content to avoid global interference.
 */
 .markdown-content {
@@ -147,7 +147,7 @@ p, h1, h2, h3, h4, h5, h6 {
   color: inherit;
 }
 
-/* Inline elements */
+/* ── Inline elements ───────────────────────────────────────────────────── */
 .markdown-content strong { font-weight: var(--font-weight-semibold); }
 .markdown-content em     { font-style: italic; }
 .markdown-content del    { text-decoration: line-through; color: var(--color-text-muted); }
@@ -173,26 +173,81 @@ p, h1, h2, h3, h4, h5, h6 {
   color: var(--color-accent-hover);
 }
 
-/* Block elements — these appear in multiline note mode, not in list titles */
+/* ── Block elements ────────────────────────────────────────────────────── */
+
 .markdown-content p {
   margin-bottom: var(--space-2);
 }
 .markdown-content p:last-child { margin-bottom: 0; }
 
+/* Headings — scale down so they fit within card context */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  margin-bottom: var(--space-1);
+  margin-top: var(--space-2);
+  color: var(--color-text-primary);
+}
+.markdown-content h1 { font-size: var(--font-size-xl); }
+.markdown-content h2 { font-size: var(--font-size-lg); }
+.markdown-content h3 { font-size: var(--font-size-md); }
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 { font-size: var(--font-size-sm); }
+
+.markdown-content h1:first-child,
+.markdown-content h2:first-child,
+.markdown-content h3:first-child { margin-top: 0; }
+
+/* Lists */
 .markdown-content ul,
 .markdown-content ol {
   padding-left: var(--space-5);
   margin-bottom: var(--space-2);
 }
 .markdown-content li { margin-bottom: var(--space-1); }
+.markdown-content li:last-child { margin-bottom: 0; }
+.markdown-content li > p { margin-bottom: 0; }
 
+/* Nested lists */
+.markdown-content ul ul,
+.markdown-content ol ol,
+.markdown-content ul ol,
+.markdown-content ol ul {
+  margin-top: var(--space-1);
+  margin-bottom: 0;
+}
+
+/* Task list checkboxes (GFM - [ ] and - [x]) */
+.markdown-content input[type="checkbox"] {
+  margin-right: var(--space-2);
+  accent-color: var(--color-accent);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Blockquote */
 .markdown-content blockquote {
   border-left: 3px solid var(--color-border-focus);
   padding-left: var(--space-3);
   color: var(--color-text-secondary);
   margin: var(--space-2) 0;
 }
+.markdown-content blockquote p { color: inherit; }
 
+/* Horizontal rule */
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-3) 0;
+}
+
+/* Code block */
 .markdown-content pre {
   background: var(--color-text-primary);
   color: #e5e7eb;
@@ -208,6 +263,42 @@ p, h1, h2, h3, h4, h5, h6 {
   padding: 0;
   font-size: inherit;
   color: inherit;
+}
+
+/* ── Tables (GFM) ──────────────────────────────────────────────────────── */
+.markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: var(--space-3) 0;
+  font-size: var(--font-size-sm);
+  overflow-x: auto;
+  display: block;
+}
+
+.markdown-content thead {
+  background-color: var(--color-accent-light);
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-content th {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.markdown-content tbody tr:nth-child(even) {
+  background-color: var(--color-bg);
+}
+
+.markdown-content tbody tr:hover {
+  background-color: var(--color-accent-light);
 }
 
 /* ── Utility Classes ────────────────────────────────────────────────────── */
