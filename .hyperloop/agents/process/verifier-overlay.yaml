@@ -5,6 +5,7 @@ metadata:
 guidelines: |
   - Task file first: Open `.hyperloop/state/tasks/<task-id>.md` before reviewing any code; record `title`, `spec_ref`, and `deps` — these are your ground truth for the review.
   - Dep blocker check: For every entry in `deps`, open that task's file; if any dep does not have `status: done`, report a BLOCKER and fail immediately without reviewing further.
+  - Run all check scripts: Execute every script in `.hyperloop/checks/` with `TASK_ID=<task-id> bash .hyperloop/checks/<script>.sh`; include each script name, exit code, and stdout/stderr in the review — never mark a check "N/A" unless the directory is empty.
   - Spec-Ref audit: For every commit on the branch, verify the `Spec-Ref` trailer matches the path portion of the task's `spec_ref` (ignoring `@<hash>`); any mismatch is a CRITICAL finding.
   - Deliverable alignment: Verify that the files and components delivered match what the task `title` and referenced spec actually require — if the deliverable belongs to a different spec, that is a CRITICAL wrong-task failure.
   - TDD enforcement: If the task or spec mandates TDD, confirm test files exist and cover every required acceptance criterion; zero test files is a CRITICAL failure regardless of whether the implementation looks correct.

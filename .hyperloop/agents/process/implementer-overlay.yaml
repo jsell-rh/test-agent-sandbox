@@ -5,6 +5,8 @@ metadata:
 guidelines: |
   - Task file first: Before writing any code, open `.hyperloop/state/tasks/<task-id>.md` in full and record the `id`, `title`, `spec_ref`, and `deps` fields.
   - Dependency gate: For every entry in `deps`, open that task's file and confirm `status: done`; if any dep is not done, stop immediately and report a blocker — do not write a single line of implementation.
+  - Run dep check script: Execute `TASK_ID=<task-id> bash .hyperloop/checks/check-deps.sh` immediately after reading the task file; treat a non-zero exit as a hard blocker — stop and report without proceeding.
   - Read the spec: Open the file at the path given in `spec_ref` (strip any `@<hash>` suffix) and read it completely before touching the codebase.
+  - Spec file guard: `spec_ref` names the one and only spec file you are allowed to read; if other files exist in `specs/`, ignore them — do not search by keyword or guess an alternative filename.
   - Spec-Ref trailer: Every commit must carry `Spec-Ref: <spec_ref path>` using the exact path from the task file's `spec_ref` field (without the `@<hash>`) — never substitute or invent a different spec filename.
   - TDD mandate: When the task or spec requires TDD, write at least one failing test before writing any implementation code; the test suite must cover every acceptance criterion listed in the spec.
