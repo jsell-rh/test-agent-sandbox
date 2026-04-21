@@ -1,33 +1,54 @@
 ---
 task_id: task-007
 round: 1
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-## Summary
+All checks pass.
 
-The PR merge was failing due to a Git conflict in `.hyperloop/state/reviews/task-007-round-0.md`. The orchestrator had written a fail note to `round-0.md` on main after the merge failed three times, while the branch had already written implementer/verifier pass reviews to the same file.
+## Verification Summary
 
-### What was done
+Reviewed the persistence layer implementation against `specs/persistence.spec.md`.
+All 78 tests pass. No spec deviations found.
 
-Rebased `hyperloop/task-007` onto `origin/main`, resolving the conflict by keeping the orchestrator's authoritative `round-0.md` (fail) on main. Both prior branch commits only touched that conflicting file, so they were dropped by the rebase — leaving the branch at the same commit as main, which is the correct baseline.
+### Files Verified
 
-### Implementation verified
+**`server/infrastructure/persistence/migrations/001_create_todos.sql`**
+- Schema matches spec exactly: TEXT columns for id/title/status/created_at/updated_at
+- `CHECK (status IN ('active', 'completed'))` constraint present
+- Both required indexes: `idx_todos_status` and `idx_todos_created_at DESC`
+- `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS` — idempotent ✓
+- No soft-delete column ✓
 
-All implementation files from previous task work are present and fully spec-compliant:
+**`server/infrastructure/persistence/MigrationRunner.ts`**
+- Creates `schema_migrations` tracking table on startup ✓
+- Reads known SQL files by version number ✓
+- Applies only unapplied migrations (skips already-recorded versions) ✓
+- Each migration wrapped in a transaction ✓
+- Throws `DatabaseInitError` on failure ✓
+- Fully idempotent — re-running is a no-op ✓
 
-- **`server/infrastructure/persistence/migrations/001_create_todos.sql`** — Creates `todos` table with correct schema (TEXT columns, `CHECK (status IN ('active', 'completed'))`, no soft-delete), and both required indexes (`idx_todos_status`, `idx_todos_created_at`). Uses `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS` for idempotency.
+**`server/infrastructure/persistence/DatabaseConnection.ts`**
+- WAL mode enabled: `PRAGMA journal_mode = WAL` ✓
+- Busy timeout set to 5000ms: `PRAGMA busy_timeout = 5000` ✓
+- `DATABASE_PATH` env var honoured with fallback to `./todos.db` ✓
+- Warning logged when env var is absent ✓
+- Throws `DatabaseInitError` on open failure ✓
 
-- **`server/infrastructure/persistence/MigrationRunner.ts`** — Creates `schema_migrations` tracking table, reads SQL files by version, applies only unapplied migrations, wraps each in a transaction, throws `DatabaseInitError` on failure.
+**`server/infrastructure/persistence/SqliteTodoRepository.ts`**
+- `findById`: returns `null` (not an error) for unknown id ✓
+- `findAll`: correct SQL for all/active/completed filters, ordered by `created_at DESC` ✓
+- `save`: `ON CONFLICT(id) DO UPDATE` upsert — `created_at` excluded from DO UPDATE clause ✓
+- `delete`: no error when id does not exist ✓
+- `counts`: single-query `SUM(CASE WHEN ...)` pattern, NULL coerced to 0 on empty table ✓
+- `_rowToTodo` uses `Todo.reconstitute()` — no domain events emitted on load ✓
+- Raw SQL only, no ORM ✓
 
-- **`server/infrastructure/persistence/DatabaseConnection.ts`** — Opens SQLite with WAL mode and 5 s busy timeout, reads `DATABASE_PATH` env var with fallback to `./todos.db` and a warning, throws `DatabaseInitError` on open failure.
+**Error classes**
+- `DatabaseInitError` and `PersistenceError` present with correct `cause` chaining ✓
 
-- **`server/infrastructure/persistence/SqliteTodoRepository.ts`** — Full `TodoRepository` implementation using raw SQL. `save()` uses `ON CONFLICT(id) DO UPDATE` upsert that preserves `created_at`. `counts()` uses a single-query `SUM(CASE WHEN ...)` pattern. Reconstitution via `Todo.reconstitute()` emits no domain events.
-
-### Test results
-
-All 78 infrastructure tests pass:
+### Test Results
 
 ```
 ✓ server/utils/errors.test.ts (8 tests)
@@ -40,6 +61,19 @@ Test Files  5 passed (5)
      Tests  78 passed (78)
 ```
 
-### Merge readiness
+All TDD plan test cases from the spec are covered:
+- `findById`: reconstitution fidelity, null on miss, no domain events emitted ✓
+- `findAll`: ordering, all/active/completed filters, empty store ✓
+- `save` (insert): round-trip, createdAt == updatedAt on first save ✓
+- `save` (update): title/status updates, createdAt unchanged, updatedAt advances ✓
+- `delete`: not returned by findById or findAll, no-throw on missing id ✓
+- `counts`: zeros on empty store, correct mixed counts ✓
+- Migrations: fresh schema valid, re-run idempotent ✓
 
-The branch is now rebased on `origin/main` with no conflicts. The PR (#24) should merge cleanly once the remote branch is updated via force push.
+### Commit Trailers
+
+HEAD commit (`bac68da`) carries:
+```
+Spec-Ref: specs/persistence.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca
+Task-Ref: task-007
+```
