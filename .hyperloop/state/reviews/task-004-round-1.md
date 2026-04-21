@@ -3,23 +3,43 @@ task_id: task-004
 round: 1
 role: implementer
 verdict: pass
-findings: 0
 ---
 
-Successfully rebased `hyperloop/task-004` onto `main` (0aa480f), resolving the persistent rebase conflict.
+Successfully rebased `hyperloop/task-004` onto `main` (b5de1a9) and resolved all conflicts.
 
 ## What was done
 
-**Root cause of rebase failure**: Multiple review commits in the branch all modified `.hyperloop/state/reviews/task-004-round-0.md`. Main had also written a `task-004-round-0.md` with the orchestrator's fail verdict. Each rebase attempt re-conflicted on each of those review commits.
+**Root cause of rebase failure**: The branch's commits used lowercase enum member names (`TodoStatus.active`, `FilterCriteria.all`) while main's codebase had evolved to use PascalCase (`TodoStatus.Active`, `FilterCriteria.All`). Additionally, the branch's `Timestamp` class had a `private constructor`, while new test files from main called `new Timestamp(...)` directly.
 
-**Resolution**: Used `git rebase -X ours main` so that main's version of `task-004-round-0.md` (the orchestrator's canonical fail verdict) was kept, and the review-only commits that had become empty after conflict resolution were automatically dropped. The implementation code commit (`15b432a`) carried forward cleanly with no conflict.
+**Resolution**:
+1. Ran `git rebase --strategy-option=theirs main` — succeeded cleanly (6 commits replayed)
+2. Fixed enum naming mismatches post-rebase:
+   - `TodoStatus`: changed `active/completed` → `Active/Completed` (enum keys only; values remain `'active'/'completed'`)
+   - `FilterCriteria`: changed `all/active/completed` → `All/Active/Completed`; updated `DEFAULT_FILTER_CRITERIA = FilterCriteria.All`
+   - `Timestamp`: made constructor public to match main's API
+3. Updated all files referencing lowercase enum keys: `src/domain/Todo.ts`, `src/domain/__tests__/Todo.test.ts`, `src/infrastructure/SqliteTodoRepository.ts`, `src/infrastructure/__tests__/SqliteTodoRepository.test.ts`
 
 ## Verification
 
-- All 56 tests pass on the rebased branch (31 domain + 25 persistence).
-- Branch is now 3 commits ahead of main: `db87560` (domain model), `39746de` (task-001 review), `15b432a` (persistence implementation).
-- Implementation commit `15b432a` retains required trailers:
-  - `Spec-Ref: specs/persistence.spec.md` ✅
-  - `Task-Ref: task-004` ✅
-- `tsc --noEmit` compiles cleanly.
-- Full spec compliance confirmed (same as previous verifier analyses in round-0).
+- **189 tests across 12 suites — all pass** ✅
+  - Original domain model tests: `Todo.test.ts` (22), `TodoTitle.test.ts` (9)
+  - New tests from main: `DomainEvents.test.ts`, `TodoId.test.ts`, `TodoStatus.test.ts`, `Timestamp.test.ts`, `FilterCriteria.test.ts`, `DomainErrors.test.ts`, `aggregates/Todo.test.ts`, `events/DomainEvents.test.ts`
+  - Infrastructure tests: `SqliteTodoRepository.test.ts` (25)
+- `tsc --noEmit` — clean, zero errors ✅
+
+## Spec Compliance
+
+**Ubiquitous Language** — all terms used verbatim in code ✅
+- `Todo`, `TodoId`, `TodoTitle`, `TodoStatus`, `FilterCriteria` ✅
+- `TodoCreated`, `TodoCompleted`, `TodoReopened`, `TodoTitleUpdated`, `TodoDeleted` ✅
+- `complete()`, `reopen()`, `updateTitle()`, `delete()` ✅
+
+**Invariants** (enforced inside Aggregate):
+1. `TodoTitle` blank → `InvalidTitleError` ✅
+2. `TodoTitle` > 500 chars → `InvalidTitleError` ✅
+3. `complete()` on already-`completed` → idempotent no-op, no event ✅
+4. `reopen()` on already-`active` → idempotent no-op, no event ✅
+5. Cannot create `Todo` without a `TodoTitle` ✅
+
+**Repository Interface** — domain-owned contract ✅
+**No Domain Services** — all business logic lives inside `Todo` Aggregate ✅
