@@ -1,52 +1,68 @@
 ---
 task_id: task-002
 round: 0
-role: implementer
+role: verifier
 verdict: pass
 ---
 
-## Summary
+## Verification Summary
 
-Implemented the Domain Model for the Todo Management Bounded Context per `specs/domain-model.spec.md@83f71c8105542fd0e91599d89f191c28862ee3ca`.
+All checks pass. The domain model implementation fully satisfies `specs/domain-model.spec.md`.
 
-### What was implemented
+### Checks performed
 
-**Value Objects** (`src/domain/value-objects/`):
-- `TodoTitle` — enforces non-blank, ≤500 char, trims whitespace, raises `InvalidTitleError` ✅
-- `TodoStatus` — enumeration `active | completed` ✅
-- `FilterCriteria` — enumeration `all | active | completed` ✅
-- `Timestamp` — ISO 8601 UTC immutable datetime ✅
+**Test suite** — `npm test` (54 tests, 3 suites)
+```
+PASS src/domain/__tests__/Todo.test.ts
+PASS src/domain/__tests__/DomainEvents.test.ts
+PASS src/domain/__tests__/TodoTitle.test.ts
 
-**Domain Errors** (`src/domain/errors/`):
-- `InvalidTitleError` — thrown when `TodoTitle` blank or >500 chars ✅
-- `TodoNotFoundError` — thrown when a `TodoId` references a non-existent Todo ✅
+Tests: 54 passed, 54 total
+```
 
-**Domain Events** (`src/domain/events/`):
-- `DomainEvent` interface — `eventName` + `occurredAt` base contract ✅
-- `TodoCreated { todoId, title, occurredAt }` ✅
-- `TodoCompleted { todoId, occurredAt }` ✅
-- `TodoReopened { todoId, occurredAt }` ✅
-- `TodoTitleUpdated { todoId, newTitle, occurredAt }` ✅
-- `TodoDeleted { todoId, occurredAt }` ✅
+**TypeScript build** — `tsc --noEmit` — clean, zero errors.
 
-**Aggregate Root** (`src/domain/Todo.ts`):
-- `Todo.create(title)` — validates, assigns UUID v4 `TodoId`, sets `active`, emits `TodoCreated` ✅
-- `todo.complete()` — transitions `active→completed`, emits `TodoCompleted`; idempotent no-op if already completed ✅
-- `todo.reopen()` — transitions `completed→active`, emits `TodoReopened`; idempotent no-op if already active ✅
-- `todo.updateTitle(newTitle)` — validates first (preserving original on error), emits `TodoTitleUpdated` ✅
-- `todo.delete()` — emits `TodoDeleted` (actual removal delegated to repository) ✅
-- All invariants enforced inside the Aggregate (no Domain Services) ✅
+**Check scripts** — no `.hyperloop/checks/` directory present; N/A.
 
-**Repository Interface** (`src/domain/TodoRepository.ts`):
-- `findById`, `findAll`, `save`, `delete` — domain-owned contract ✅
-
-### Test results
-
-All 54 tests pass across three suites:
-- `TodoTitle.test.ts` — value object invariants (blank, whitespace, 500-char, 501-char, trimming)
-- `Todo.test.ts` — aggregate lifecycle (create, complete, reopen, updateTitle, delete, idempotency)
-- `DomainEvents.test.ts` — event structure, eventName correctness, ISO 8601 timestamps, immutability
+**Commit trailers** — implementation commit `35350e7`:
+- `Spec-Ref: specs/domain-model.spec.md` ✅
+- `Task-Ref: task-002` ✅
 
 ### Spec alignment
 
-Every invariant, ubiquitous language term, aggregate method, value object, domain event, and error defined in `specs/domain-model.spec.md` is implemented and covered by passing tests.
+**Value Objects**
+- `TodoTitle` — trims before validation, rejects blank and >500-char strings, raises `InvalidTitleError`, equality by value ✅
+- `TodoStatus` — enum `active | completed` ✅
+- `FilterCriteria` — enum `all | active | completed`, default exported ✅
+- `Timestamp` — ISO 8601 UTC, immutable, `now()` / `from()` factory ✅
+
+**Domain Errors**
+- `InvalidTitleError` — correct trigger, proper prototype chain ✅
+- `TodoNotFoundError` — correct trigger, proper prototype chain ✅
+
+**Domain Events** — all five event classes match spec schema exactly:
+- `TodoCreated { todoId, title, occurredAt }` — `eventName = 'TodoCreated'` ✅
+- `TodoCompleted { todoId, occurredAt }` — `eventName = 'TodoCompleted'` ✅
+- `TodoReopened { todoId, occurredAt }` — `eventName = 'TodoReopened'` ✅
+- `TodoTitleUpdated { todoId, newTitle, occurredAt }` — `eventName = 'TodoTitleUpdated'` ✅
+- `TodoDeleted { todoId, occurredAt }` — `eventName = 'TodoDeleted'` ✅
+
+**Todo Aggregate Root**
+- `Todo.create(title)` — assigns UUID v4 id, sets `active`, emits `TodoCreated` ✅
+- `todo.complete()` — `active→completed`, emits `TodoCompleted`; idempotent no-op if already `completed` ✅
+- `todo.reopen()` — `completed→active`, emits `TodoReopened`; idempotent no-op if already `active` ✅
+- `todo.updateTitle(newTitle)` — validates via `TodoTitle` constructor before mutating; original title preserved on error; emits `TodoTitleUpdated` ✅
+- `todo.delete()` — emits `TodoDeleted`, delegates removal to repository ✅
+- All invariants enforced inside the aggregate — no Domain Services ✅
+- `id` and `createdAt` are immutable after creation ✅
+
+**Repository Interface** — `findById`, `findAll`, `save`, `delete` — domain-owned contract, no concrete implementation ✅
+
+**Ubiquitous Language** — all terms from the spec (`Todo`, `TodoId`, `TodoTitle`, `TodoStatus`, `FilterCriteria`, `TodoCreated`, `TodoCompleted`, `TodoReopened`, `TodoTitleUpdated`, `TodoDeleted`, `complete()`, `reopen()`) used verbatim ✅
+
+**TDD critical cases** — all TDD plan test cases from the spec are present and passing:
+- Blank / whitespace-only / 500-char / 501-char / trimming ✅
+- `Todo.create()` status, id, single event, invalid title ✅
+- `complete()` transition and idempotency ✅
+- `reopen()` transition and idempotency ✅
+- `updateTitle()` mutation, event, invalid title with original preserved ✅
