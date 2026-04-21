@@ -14,8 +14,14 @@
 set -euo pipefail
 
 # Fetch latest remote state.
+# Treat fetch failure as a hard error: a simulation against stale origin/main
+# can falsely report OK while the branch still conflicts against the true main.
 echo "Fetching origin to ensure origin/main is up-to-date..."
-git fetch origin 2>&1 || { echo "WARNING: git fetch failed; proceeding with cached origin/main." >&2; }
+if ! git fetch origin 2>&1; then
+  echo "ERROR: git fetch origin failed — cannot run a reliable merge simulation against the true latest main." >&2
+  echo "  Fix the network/auth issue and re-run this check before submitting." >&2
+  exit 1
+fi
 
 # Resolve authoritative base.
 if git rev-parse --verify origin/main >/dev/null 2>&1; then

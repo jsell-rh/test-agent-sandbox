@@ -13,8 +13,14 @@ set -euo pipefail
 # Fetch latest remote state so the check is never based on a stale origin/main.
 # Without this, a branch may pass the check locally but conflict when the
 # orchestrator applies it against the true latest main.
+# Treat fetch failure as a hard error: a check against stale origin/main can
+# falsely report OK and allow a conflicting branch to reach the orchestrator.
 echo "Fetching origin to ensure origin/main is up-to-date..."
-git fetch origin 2>&1 || { echo "WARNING: git fetch failed; proceeding with cached origin/main." >&2; }
+if ! git fetch origin 2>&1; then
+  echo "ERROR: git fetch origin failed — cannot verify rebase cleanliness against the true latest main." >&2
+  echo "  Fix the network/auth issue and re-run this check before submitting." >&2
+  exit 1
+fi
 
 # Prefer origin/main (authoritative), fall back to local main.
 if git rev-parse --verify origin/main >/dev/null 2>&1; then
