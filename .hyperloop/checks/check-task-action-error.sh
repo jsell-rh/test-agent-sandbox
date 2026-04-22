@@ -51,8 +51,12 @@ if grep -qE "Action error after ([2-9]|[0-9]{2,}) attempts" "$TASK_FILE"; then
   echo "  REQUIRED ACTION — N≥2 short-circuit (stop here, do nothing else):" >&2
   echo "    1. TASK_ID=${TASK_ID} bash .hyperloop/checks/check-permanent-conflict.sh" >&2
   echo "    2. TASK_ID=${TASK_ID} bash .hyperloop/checks/check-branch-committable.sh" >&2
-  echo "    3. bash .hyperloop/checks/check-rebase-diagnostics.sh" >&2
-  echo "    4. Paste all output verbatim and report BLOCKED." >&2
+  echo "       (if non-zero: bare-branch fallback → re-run until it exits 0)" >&2
+  echo "    3. bash .hyperloop/checks/check-commit-replay.sh" >&2
+  echo "       (check-branch-committable.sh uses merge-tree and CANNOT detect per-commit" >&2
+  echo "        conflicts; if non-zero: bare-branch fallback → re-run steps 2 AND 3)" >&2
+  echo "    4. bash .hyperloop/checks/check-rebase-diagnostics.sh" >&2
+  echo "    5. Paste all output verbatim and report BLOCKED." >&2
   echo "" >&2
   echo "  Do NOT write implementation code, run git rebase, or attempt any other step." >&2
   exit 1
