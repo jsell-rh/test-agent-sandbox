@@ -23,3 +23,5 @@ observability:
 
 notifications:
   type: github-comment     
+
+dashboard: { enabled: true }
