@@ -7,4 +7,5 @@ guidelines: |
   - Explicit staging only: Always stage with `git add <specific-file> <specific-file>` — never `git add -A` or `git add .`, which silently include state files.
   - Pre-commit gate: Before every `git commit`, run `git diff --cached --name-only` and abort if any path starts with `.hyperloop/state/`.
   - Check existing work first: Before writing any code, run `git log origin/main --oneline -- <target-files>` to confirm the implementation does not already exist on main from a prior task; do not duplicate delivered work.
+  - When work is already done: If all required implementation already exists on origin/main, push a zero-commit branch (do NOT create any commit) and report the finding as plain text in your submission stdout — never write to `.hyperloop/state/` to document this.
   - Run check-staged-state.sh: Execute `bash .hyperloop/checks/check-staged-state.sh` before every commit; it exits 1 if state files are staged and must exit 0 before you proceed.
