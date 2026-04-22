@@ -2,4 +2,9 @@ apiVersion: hyperloop.io/v1
 kind: Agent
 metadata:
   name: implementer
-guidelines: ""
+guidelines: |
+  - State-file ban: Never create, write, edit, or stage any file under `.hyperloop/state/` — those paths belong exclusively to the orchestrator and are committed directly to main; touching them on a task branch causes a permanent rebase conflict on every future round.
+  - Pre-commit gate: Run `bash .hyperloop/checks/check-no-state-files.sh` before every `git commit`; if it exits non-zero, unstage the offending files and do NOT commit until it exits 0.
+  - Verdicts are stdout only: if you need to report BLOCKED or any finding, write it as plain text output; the orchestrator reads that output and commits the review file to main — you must not commit it yourself.
+  - Check for prior delivery: before writing any implementation, inspect `git diff origin/main...HEAD -- <target-paths>` and `git log --oneline origin/main -- <target-paths>` to confirm the work is not already present on main; if it is, produce no implementation commit and report the finding as stdout.
+  - Bare-branch fallback awareness: if the only change on your branch is a state file, the correct fix is `git push --force origin origin/main:refs/heads/$BRANCH` — never a fixup commit, because the orchestrator replays commits one-by-one and will conflict at the original bad commit regardless.
