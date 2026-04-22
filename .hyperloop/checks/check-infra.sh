@@ -24,6 +24,12 @@ REQUIRED_SCRIPTS=(
   "check-merge-simulation.sh"
   "check-push-sync.sh"
   "check-permanent-conflict.sh"
+  "check-no-state-files.sh"
+  "check-state-commit-history.sh"
+  "check-branch-committable.sh"
+  "check-commit-replay.sh"
+  "check-pre-add-working-tree.sh"
+  "check-pre-commit-staged.sh"
 )
 
 all_ok=true
