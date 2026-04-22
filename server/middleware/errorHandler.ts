@@ -9,7 +9,7 @@
  */
 
 import { defineEventHandler, setResponseStatus, setHeader, send } from 'h3'
-import { formatApiError } from '~/server/utils/errorFormatter'
+import { formatApiError } from '../utils/errorFormatter'
 
 export default defineEventHandler((event) => {
   event.context._errorHandler = async (err: unknown) => {
