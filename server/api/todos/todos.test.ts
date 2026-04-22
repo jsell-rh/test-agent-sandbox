@@ -451,6 +451,32 @@ describe('PATCH /api/todos/:id', () => {
     const data = await json<{ error: string }>(res)
     expect(data.error).toBe('BAD_REQUEST')
   })
+
+  it('status: "active" on already-active todo returns 200 (idempotent)', async () => {
+    const todo = seedTodo('Already active')
+
+    const res = await req(`/api/todos/${todo.id}`, {
+      method: 'PATCH',
+      ...jsonBody({ status: 'active' }),
+    })
+
+    expect(res.status).toBe(200)
+    const data = await json<{ status: string }>(res)
+    expect(data.status).toBe('active')
+  })
+
+  it('non-string title returns 400 BAD_REQUEST', async () => {
+    const todo = seedTodo('Valid title')
+
+    const res = await req(`/api/todos/${todo.id}`, {
+      method: 'PATCH',
+      ...jsonBody({ title: 42 }),
+    })
+
+    expect(res.status).toBe(400)
+    const data = await json<{ error: string }>(res)
+    expect(data.error).toBe('BAD_REQUEST')
+  })
 })
 
 // ---------------------------------------------------------------------------
