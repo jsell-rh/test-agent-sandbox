@@ -2,4 +2,7 @@ apiVersion: hyperloop.io/v1
 kind: Agent
 metadata:
   name: verifier
-guidelines: ""
+guidelines: |
+  - State-file history is a hard blocker: If `check-state-commit-history.sh` exits 1, the branch is permanently broken — a fixup commit does NOT fix it because the orchestrator replays commits one-by-one; require cherry-pick surgery or bare-branch fallback before accepting.
+  - Distinguish tree-clean from history-clean: `check-no-state-files.sh` failing on the final tree AND `check-state-commit-history.sh` failing on commit history are separate conditions — both must exit 0; passing one does not imply the other.
+  - Verify implementation is not a duplicate: Confirm that the commits on the task branch actually introduce new implementation, not just files already present on origin/main from prior tasks.
