@@ -27,6 +27,15 @@ if [[ -n "$STAGED" ]]; then
   echo "  These files belong exclusively to the orchestrator (written to main)." >&2
   echo "  Committing them to the task branch creates a permanent rebase conflict." >&2
   echo "" >&2
+  echo "  !! CRITICAL: 'New' files also conflict — do NOT use 'this file is new' as !!!" >&2
+  echo "  !! justification to override this check.  The orchestrator writes the SAME  !!!" >&2
+  echo "  !! review/task file to main when recording ANY verdict (including BLOCKED).  !!!" >&2
+  echo "  !! Two different versions of the same 'new' file = rebase conflict, always.  !!!" >&2
+  echo "" >&2
+  echo "  HOW TO DELIVER A BLOCKED VERDICT: write the BLOCKED report as your text     " >&2
+  echo "  output (stdout).  The orchestrator reads that output and commits the review  " >&2
+  echo "  file to main on your behalf.  Do NOT commit review files yourself.          " >&2
+  echo "" >&2
   echo "  Fix: git restore --staged .hyperloop/state/" >&2
   RC=1
 fi
@@ -49,6 +58,15 @@ if [[ -n "$COMMITTED" ]]; then
   echo "" >&2
   echo "  These files cause a rebase conflict on every round because the orchestrator" >&2
   echo "  also writes them to main.  You must restore them to match main before pushing." >&2
+  echo "" >&2
+  echo "  !! CRITICAL — 'NEW' FILES ALSO CONFLICT: even a review file that does not      !!" >&2
+  echo "  !! yet exist on main will cause 'Action error after 3 attempts: Rebase          !!" >&2
+  echo "  !! conflict with main' permanently.  The orchestrator writes the SAME file      !!" >&2
+  echo "  !! (task-NNN-round-M.md) to main when recording ANY verdict.  The orchestrator  !!" >&2
+  echo "  !! version and the agent-committed version differ → conflict every round.        !!" >&2
+  echo "  !! 'This file is new so it cannot conflict' is WRONG and has been observed to   !!" >&2
+  echo "  !! cause 40+ consecutive action-error loops.  This check exit 1 is NEVER valid  !!" >&2
+  echo "  !! to override.  Do NOT commit review files — write them as stdout output only. !!" >&2
   echo "" >&2
   echo "  !! WARNING: A fixup commit is INSUFFICIENT if state files appear in intermediate !!" >&2
   echo "  !! commits — the orchestrator replays commits one-by-one and will conflict at  !!" >&2
