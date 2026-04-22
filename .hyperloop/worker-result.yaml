@@ -1,0 +1,34 @@
+---
+verdict: pass
+---
+All 235 tests pass (157 UI + 78 server-side API tests).
+
+Task-012 adds two additional test cases to `server/api/todos/todos.test.ts` that were missing from main:
+
+1. `status: "active" on already-active todo returns 200 (idempotent)` — verifies that reopening an already-active todo is idempotent and returns HTTP 200 with the correct status.
+2. `non-string title returns 400 BAD_REQUEST` — verifies that the PATCH handler type-guards the `title` field and rejects non-string values with HTTP 400.
+
+Both tests pass against the existing implementation which already handles these cases correctly:
+- The domain `Todo.reopen()` method is idempotent by design (no error thrown on already-active todo).
+- The PATCH handler includes a `typeof body.title !== 'string'` guard that throws 400 BAD_REQUEST.
+
+API contract coverage (per interface.spec.md TDD Plan):
+- GET /api/todos — empty counts, filter=active/completed/all, invalid filter → 400, ordering ✅
+- POST /api/todos — 201 with UUID v4 resource, empty/whitespace → 422, missing/non-string → 400 ✅
+- PATCH /api/todos/:id — complete, reopen, idempotent complete, idempotent reopen, title update, combined, 404, 422, 400 ✅
+- DELETE /api/todos/:id — 204, not-found 404, retrievability check ✅
+- DELETE /api/todos?status=completed — deletedCount, zero case, empty store, missing/invalid status → 400 ✅
+
+UI layer coverage:
+- Store state machine (filterCriteria, editingTodoId, todos, counts) ✅
+- Optimistic updates with rollback for toggle and delete ✅
+- useTodoActions: loadTodos, createTodo, toggleTodo, updateTitle, deleteTodo, clearCompleted ✅
+- TodoItem: checkbox, title, double-click edit, Enter/blur submit, Escape cancel, empty-submit-deletes ✅
+- Index page: header, new-todo input, todo list, filter tabs, footer with item count, clear-completed, empty states, toast errors ✅
+
+Non-functional requirements satisfied:
+- Optimistic UI updates with server-side rollback on error ✅
+- Initial load via GET /api/todos on page mount ✅
+- Accessible checkbox labels and edit field aria-labels ✅
+- Error toast auto-dismiss after 5s ✅
+- createdAt DESC ordering (newest first) ✅
