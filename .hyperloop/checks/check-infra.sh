@@ -30,6 +30,7 @@ REQUIRED_SCRIPTS=(
   "check-commit-replay.sh"
   "check-pre-add-working-tree.sh"
   "check-pre-commit-staged.sh"
+  "check-impl-commits.sh"
 )
 
 all_ok=true
