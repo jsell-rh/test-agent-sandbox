@@ -29,12 +29,11 @@ export default defineNuxtConfig({
       // Suppress DOMPurify SSR warning
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'development'),
     },
-         server: {                                                             
-        watch: {                                                            
-          ignored: ['**/node_modules/**']                                   
-        }                                                                   
-      }                                                                   
-    }   
+    server: {
+      watch: {
+        ignored: ['**/node_modules/**']
+      }
+    }
   },
 
   // App metadata

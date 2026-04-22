@@ -82,6 +82,11 @@ export default defineNuxtConfig({
 
   // Vite config
   vite: {
+    server: {
+      watch: {
+        ignored: ['**/node_modules/**']
+      }
+    },
     vue: {
       template: {
         transformAssetUrls: {
