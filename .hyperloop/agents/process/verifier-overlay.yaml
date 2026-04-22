@@ -1,0 +1,7 @@
+apiVersion: hyperloop.io/v1
+kind: Agent
+metadata:
+  name: verifier
+guidelines: |
+  - Branch-committability is a hard gate: if `check-branch-committable.sh`, `check-no-state-files.sh`, or `check-state-commit-history.sh` exit non-zero, the review must be FAIL regardless of test results or other findings — a branch with state files in its commit history will produce an orchestrator action error on every merge attempt.
+  - Quote all check output verbatim: paste the complete stdout and exit code of every check script into the review; never paraphrase or omit check output.
