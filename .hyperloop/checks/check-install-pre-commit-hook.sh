@@ -5,17 +5,29 @@
 #
 # Implementers MUST run this as the first action on any task. It is idempotent.
 # Exit 0 = hook is installed and active. Exit 1 = could not install hook.
+#
+# Worktree-safe: uses `git rev-parse --git-common-dir` so that the hook is
+# written to the shared hooks directory, not to the worktree's .git file.
 
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-HOOK_FILE="$REPO_ROOT/.git/hooks/pre-commit"
 CHECK_SCRIPT=".hyperloop/checks/check-no-state-files.sh"
+
+# Use --git-common-dir so this works correctly in git worktrees.
+# In a worktree, .git is a plain file (not a directory); hooks live in
+# the common git dir that all worktrees share.
+GIT_COMMON_DIR="$(git rev-parse --git-common-dir)"
+HOOKS_DIR="$GIT_COMMON_DIR/hooks"
+HOOK_FILE="$HOOKS_DIR/pre-commit"
 
 HOOK_BODY="#!/usr/bin/env bash
 # Installed by check-install-pre-commit-hook.sh — do not remove.
 bash \"\$(git rev-parse --show-toplevel)/$CHECK_SCRIPT\"
 "
+
+# Ensure the hooks directory exists (it always should, but be safe).
+mkdir -p "$HOOKS_DIR"
 
 if [[ -f "$HOOK_FILE" ]]; then
   if grep -q "$CHECK_SCRIPT" "$HOOK_FILE"; then

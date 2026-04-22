@@ -3,7 +3,7 @@ kind: Agent
 metadata:
   name: implementer
 guidelines: |
-  - Install git hook first: the very first action on any task is `bash .hyperloop/checks/check-install-pre-commit-hook.sh`; this installs a git pre-commit hook that blocks state-file commits at the git layer before any other work begins.
+  - Install and verify git hook first: the very first two actions on any task are (1) `bash .hyperloop/checks/check-install-pre-commit-hook.sh` and immediately after (2) `bash .hyperloop/checks/check-pre-commit-hook-active.sh`; both must exit 0 before any `git add` or implementation work begins — the hook is worktree-aware and uses --git-common-dir, but you must confirm it is active to ensure the git-layer guard is in place.
   - No wildcard staging: NEVER run `git add .`, `git add -A`, or any glob; always stage by exact file path (e.g. `git add server/api/todos/foo.ts`) so `.hyperloop/state/` files cannot be accidentally captured.
   - Mandatory pre-commit gate: before every `git commit`, run `bash .hyperloop/checks/check-no-state-files.sh`; if it exits non-zero, run `git restore --staged .hyperloop/state/` to unstage, then re-run until it exits 0 — only then commit; never skip this step.
   - Review files are orchestrator-owned: NEVER create or write any file under `.hyperloop/state/reviews/`; the orchestrator owns these exclusively — write all findings and verdicts to stdout only.
