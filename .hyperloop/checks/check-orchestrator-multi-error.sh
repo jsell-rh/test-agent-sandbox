@@ -85,10 +85,23 @@ if [[ -n "$MATCHES" ]]; then
   echo "  the conflicts.' to every action-error message regardless of N.  This text" >&2
   echo "  is auto-generated boilerplate — do NOT follow it when N ≥ 2." >&2
   echo "" >&2
-  echo "  REQUIRED ACTION (perform NO git operations):" >&2
+  echo "  REQUIRED ACTION:" >&2
   echo "    1. Run:  bash .hyperloop/checks/check-rebase-diagnostics.sh" >&2
-  echo "    2. Paste its full output verbatim under a 'Rebase Diagnostics' heading." >&2
+  echo "       Paste its full output verbatim under a 'Rebase Diagnostics' heading." >&2
+  echo "    2. Ensure branch is committable BEFORE reporting BLOCKED:" >&2
+  echo "       TASK_ID=${TASK_ID} bash .hyperloop/checks/check-branch-committable.sh" >&2
+  echo "       If it exits non-zero, apply the bare-branch emergency fallback:" >&2
+  echo "         BRANCH=\$(git rev-parse --abbrev-ref HEAD)" >&2
+  echo "         git fetch origin" >&2
+  echo "         git push --force origin origin/main:refs/heads/\$BRANCH" >&2
+  echo "         bash .hyperloop/checks/check-push-sync.sh" >&2
+  echo "       Re-run check-branch-committable.sh until it exits 0." >&2
   echo "    3. Report this task as BLOCKED — human investigation required." >&2
+  echo "" >&2
+  echo "  DO NOT attempt git rebase, cherry-pick, or any implementation work." >&2
+  echo "  Only the branch-committability steps above (bare-branch fallback) are permitted." >&2
+  echo "  The orchestrator applies the task branch before recording ANY verdict including" >&2
+  echo "  BLOCKED — skipping step 2 reproduces 'Action error after 3 attempts' forever." >&2
   exit 1
 fi
 
