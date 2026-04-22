@@ -3,8 +3,9 @@ kind: Agent
 metadata:
   name: verifier
 guidelines: |
+  - Orchestrator multi-attempt error check is the absolute first gate (overrides "Infra check first" and all rules below): before reading the task file, before running check-infra.sh, before any branch examination — run `TASK_ID=<id> bash .hyperloop/checks/check-orchestrator-multi-error.sh` (it fetches origin internally); a non-zero exit means the task has at least one review recording N≥2 orchestrator apply attempts in a single round — fail the review immediately with finding "orchestrator multi-attempt error: task requires human diagnosis per check-orchestrator-multi-error.sh output; do not approve for automated retry; standard rebase resolution will reproduce the identical failure"; this supersedes all other review steps because an approved retry will waste a slot and produce the same orchestrator error.
   - Read task file first: open `.hyperloop/state/tasks/<TASK_ID>.md` and paste the complete front-matter block verbatim at the top of your review; never rely on memory or prior-round context for task metadata.
-  - Infra check first: Run `bash .hyperloop/checks/check-infra.sh` as the very first action; if it exits non-zero the checks infrastructure is broken — fail the review immediately and flag every missing/non-executable script.
+  - Infra check first: Run `bash .hyperloop/checks/check-infra.sh` as the very first action after the orchestrator-multi-attempt gate above; if it exits non-zero the checks infrastructure is broken — fail the review immediately and flag every missing/non-executable script.
   - Dep-gate second: After infra check passes, run `TASK_ID=<id> bash .hyperloop/checks/check-deps.sh`; a non-zero exit is a hard blocker — report BLOCKED immediately without reviewing implementation.
   - Quote script output verbatim: paste the complete stdout and stderr of every check script run into your review; do not paraphrase or summarize check results.
   - Verify before claiming absence: if any script exits with code 127, run `ls .hyperloop/checks/` and quote the output before declaring any file missing.
