@@ -1,0 +1,11 @@
+---
+verdict: pass
+---
+README.md satisfies the spec ("Concise readme details how to run for users").
+
+- All commands verified against package.json: dev, build, preview, test, test:app, test:infra, test:watch — exact match.
+- Node.js 20+ prerequisite is accurate for Nuxt 4.
+- DATABASE_PATH default (./data/todos.db) is correctly documented.
+- 44 lines; no padding or filler.
+- Commit trailers Spec-Ref and Task-Ref are present.
+- No .hyperloop/state/ files committed.
