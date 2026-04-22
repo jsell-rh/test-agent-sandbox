@@ -1,7 +1,7 @@
 ---
 task_id: task-012
 round: 0
-role: verifier
+role: implementer
 verdict: fail
 ---
 ## Task Front-Matter (verbatim)
