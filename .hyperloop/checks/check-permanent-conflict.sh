@@ -125,7 +125,7 @@ if [[ -n "$STATE_FILE_COMMITS" && "$STREAK" -ge 2 ]]; then
   echo "  Step 3 — Cherry-pick only the implementation commits (oldest first):" >&2
   if [[ -n "$IMPL_COMMITS" ]]; then
     echo "  (Candidate commits detected — verify each before cherry-picking:)" >&2
-    echo "$IMPL_COMMITS" | tac | sed 's/^/    git cherry-pick /' | awk '{print $1,$2}' >&2
+    echo "$IMPL_COMMITS" | tac | awk '{print "    git cherry-pick " $1}' >&2
   else
     echo "    # No implementation commits detected automatically." >&2
     echo "    # Run Step 1 manually and cherry-pick the results." >&2
@@ -136,9 +136,11 @@ if [[ -n "$STATE_FILE_COMMITS" && "$STREAK" -ge 2 ]]; then
   echo "    bash .hyperloop/checks/check-state-commit-history.sh" >&2
   echo "    bash .hyperloop/checks/check-rebase-clean.sh" >&2
   echo "" >&2
-  echo "  Step 5 — Replace the broken branch:" >&2
+  echo "  Step 5 — Replace the broken branch on origin:" >&2
   echo "    git push --force origin HEAD:${BRANCH}" >&2
-  echo "    git push --force origin HEAD:origin/${BRANCH}" >&2
+  echo "  Then immediately verify the surgery landed:" >&2
+  echo "    bash .hyperloop/checks/check-push-sync.sh" >&2
+  echo "    bash .hyperloop/checks/check-state-commit-history.sh" >&2
   echo "" >&2
   echo "  Step 6 — Trigger a new implementer round after surgery completes." >&2
   echo "" >&2
