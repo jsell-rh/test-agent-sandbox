@@ -16,7 +16,6 @@ const todosUrl = `${runtimePublic.apiBase}${TODOS_PATH_SEGMENT}`
 const api = createTodosApiClient(todosUrl)
 
 const {
-  todos,
   filteredTodos,
   filterCriteria,
   editingTodoId,

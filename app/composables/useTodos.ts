@@ -104,7 +104,7 @@ export function useTodos(api: TodosApiClient): UseTodosReturn {
   // ---------------------------------------------------------------------------
 
   const filteredTodos = computed<TodoResource[]>(() => {
-    if (filterCriteria.value === 'all') return todos.value as TodoResource[]
+    if (filterCriteria.value === DEFAULT_FILTER) return todos.value as TodoResource[]
     return (todos.value as TodoResource[]).filter(t => t.status === filterCriteria.value)
   })
 

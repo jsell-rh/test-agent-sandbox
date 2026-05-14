@@ -10,7 +10,8 @@
  * This ensures values from Configuration flow through — never hardcoded.
  */
 
-import type { TodoResource, TodoListResponse, FilterCriteria } from '~/types/todo'
+import type { TodoResource, TodoListResponse, FilterCriteria, TodoStatus } from '~/types/todo'
+import { DEFAULT_FILTER } from '~/types/todo'
 
 /** Path segment appended to apiBase to build the todos endpoint URL. */
 export const TODOS_PATH_SEGMENT = '/todos'
@@ -18,7 +19,7 @@ export const TODOS_PATH_SEGMENT = '/todos'
 /** Payload for PATCH /api/todos/:id */
 export interface PatchTodoRequest {
   title?: string
-  status?: 'active' | 'completed'
+  status?: TodoStatus
 }
 
 /**
@@ -56,7 +57,7 @@ export function createTodosApiClient(todosUrl: string): TodosApiClient {
   return {
     async listTodos(filter?: FilterCriteria): Promise<TodoListResponse> {
       const params: Record<string, string> = {}
-      if (filter && filter !== 'all') {
+      if (filter && filter !== DEFAULT_FILTER) {
         params['filter'] = filter
       }
       return await $fetch<TodoListResponse>(todosUrl, { params })

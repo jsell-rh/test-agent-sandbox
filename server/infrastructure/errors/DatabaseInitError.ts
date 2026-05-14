@@ -7,11 +7,11 @@
  * The server must refuse to accept requests after this error.
  */
 export class DatabaseInitError extends Error {
-  readonly name = 'DatabaseInitError'
+  override readonly name = 'DatabaseInitError'
 
   constructor(
     message: string,
-    readonly cause?: unknown,
+    override readonly cause?: unknown,
   ) {
     super(message)
     Object.setPrototypeOf(this, DatabaseInitError.prototype)

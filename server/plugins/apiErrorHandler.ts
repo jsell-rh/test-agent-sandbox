@@ -22,6 +22,5 @@ export default defineNitroPlugin((nitroApp) => {
     setResponseStatus(event, statusCode)
     setHeader(event, 'content-type', 'application/json')
     await send(event, JSON.stringify(body))
-    event.handled = true
   })
 })

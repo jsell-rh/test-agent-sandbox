@@ -5,7 +5,7 @@
  * surfaces the violation to the Application Layer.
  */
 export class InvalidTitleError extends Error {
-  readonly name = 'InvalidTitleError'
+  override readonly name = 'InvalidTitleError'
 
   constructor(reason: string) {
     super(reason)

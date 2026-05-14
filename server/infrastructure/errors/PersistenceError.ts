@@ -5,11 +5,11 @@
  * in a domain-neutral error type that the Application Layer can handle.
  */
 export class PersistenceError extends Error {
-  readonly name = 'PersistenceError'
+  override readonly name = 'PersistenceError'
 
   constructor(
     message: string,
-    readonly cause?: unknown,
+    override readonly cause?: unknown,
   ) {
     super(message)
     Object.setPrototypeOf(this, PersistenceError.prototype)

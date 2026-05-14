@@ -5,7 +5,7 @@
  * response into this error before surfacing it to the HTTP layer.
  */
 export class TodoNotFoundError extends Error {
-  readonly name = 'TodoNotFoundError'
+  override readonly name = 'TodoNotFoundError'
   readonly todoId: string
 
   constructor(todoId: string) {

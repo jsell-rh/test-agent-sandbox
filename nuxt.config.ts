@@ -31,5 +31,25 @@ export default defineNuxtConfig({
     experimental: {
       database: false,
     },
+    // Security headers on all routes
+    routeRules: {
+      '/**': {
+        headers: {
+          'X-Content-Type-Options': 'nosniff',
+          'X-Frame-Options': 'DENY',
+          'Referrer-Policy': 'strict-origin-when-cross-origin',
+          'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+          'Content-Security-Policy': [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline'", // Nuxt requires inline scripts
+            "style-src 'self' 'unsafe-inline'", // Nuxt CSS-in-JS requires inline styles
+            "img-src 'self' data:",
+            "font-src 'self'",
+            "connect-src 'self'",
+            "frame-ancestors 'none'",
+          ].join('; '),
+        },
+      },
+    },
   },
 })

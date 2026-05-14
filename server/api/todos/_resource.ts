@@ -9,12 +9,13 @@
  */
 
 import type { Todo } from '~~/server/domain/Todo'
+import { TodoStatus } from '~~/server/domain/value-objects/TodoStatus'
 
 /** JSON representation of a Todo, as specified in the Interface Spec. */
 export interface TodoResource {
   id: string
   title: string
-  status: 'active' | 'completed'
+  status: TodoStatus
   createdAt: string
   updatedAt: string
 }
@@ -29,7 +30,7 @@ export function toResource(todo: Todo): TodoResource {
   return {
     id: todo.id,
     title: todo.title,
-    status: todo.status as 'active' | 'completed',
+    status: todo.status,
     createdAt: todo.createdAt,
     updatedAt: todo.updatedAt,
   }
