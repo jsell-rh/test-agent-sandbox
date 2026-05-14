@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest'
-import { useTodos, FILTER_ALL, FILTER_ACTIVE, FILTER_COMPLETED } from './useTodos'
+import { useTodos, FILTER_ALL, FILTER_ACTIVE, FILTER_COMPLETED, API_TODOS_PATH } from './useTodos'
 import type { TodoResource, TodoListResponse } from './useTodos'
 
 // ---------------------------------------------------------------------------
@@ -32,8 +32,8 @@ function makeTodo(overrides: Partial<TodoResource> = {}): TodoResource {
 }
 
 function fakeResponse(todos: TodoResource[]): TodoListResponse {
-  const active = todos.filter(t => t.status === 'active').length
-  const completed = todos.filter(t => t.status === 'completed').length
+  const active = todos.filter(t => t.status === FILTER_ACTIVE).length
+  const completed = todos.filter(t => t.status === FILTER_COMPLETED).length
   return {
     todos,
     counts: { all: todos.length, active, completed },
@@ -99,7 +99,7 @@ describe('useTodos — loadTodos()', () => {
     await loadTodos()
 
     expect(fetch).toHaveBeenCalledOnce()
-    expect(fetch).toHaveBeenCalledWith('/api/todos')
+    expect(fetch).toHaveBeenCalledWith(API_TODOS_PATH)
   })
 
   it('replaces existing todos[] on second call', async () => {

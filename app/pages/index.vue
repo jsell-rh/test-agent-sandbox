@@ -14,14 +14,16 @@
  */
 
 import { onMounted } from 'vue'
-import { useTodos } from '~/composables/useTodos'
+import { useTodos, FILTER_COMPLETED } from '~/composables/useTodos'
 
 const {
   todos,
-  filter,
-  editingTodoId,
+  // filter and editingTodoId are part of the state machine contract and will be
+  // consumed by child components in subsequent tasks.
+  filter,       // eslint-disable-line @typescript-eslint/no-unused-vars
+  editingTodoId, // eslint-disable-line @typescript-eslint/no-unused-vars
   filteredTodos,
-  counts,
+  counts,       // eslint-disable-line @typescript-eslint/no-unused-vars
   loadTodos,
 } = useTodos()
 
@@ -34,13 +36,14 @@ onMounted(async () => {
   <div class="todo-app">
     <AppHeader />
 
-    <section class="main" :aria-hidden="todos.length === 0">
-      <ol class="todo-list" aria-label="Todo items">
+    <section class="main" :aria-hidden="todos.length === 0 ? 'true' : undefined">
+      <ol class="todo-list" data-testid="todo-list" aria-label="Todo items">
         <li
           v-for="todo in filteredTodos"
           :key="todo.id"
           class="todo-item"
-          :class="{ completed: todo.status === 'completed' }"
+          data-testid="todo-item"
+          :class="{ [FILTER_COMPLETED]: todo.status === FILTER_COMPLETED }"
         >
           {{ todo.title }}
         </li>

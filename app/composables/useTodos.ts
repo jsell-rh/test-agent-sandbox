@@ -46,7 +46,16 @@ export const FILTER_ALL: FilterCriteria = 'all'
 export const FILTER_ACTIVE: FilterCriteria = 'active'
 export const FILTER_COMPLETED: FilterCriteria = 'completed'
 
-const API_TODOS_PATH = '/api/todos'
+/**
+ * The resource path for the todos API endpoint.
+ *
+ * Constructed as `${runtimeConfig.public.apiBase}/todos` where
+ * `apiBase` defaults to `/api` (see nuxt.config.ts).  If `apiBase`
+ * ever changes, this constant must be updated to match.
+ *
+ * Exported so tests can reference it without hardcoding the literal.
+ */
+export const API_TODOS_PATH = '/api/todos'
 
 // ---------------------------------------------------------------------------
 // Composable
