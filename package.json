@@ -1,0 +1,35 @@
+{
+  "name": "todo-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "test": "npm run test:infra && npm run test:ui",
+    "test:infra": "vitest run --config vitest.infra.config.ts",
+    "test:ui": "vitest run --config vitest.ui.config.ts",
+    "test:watch": "vitest --config vitest.infra.config.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "marked": "^15.0.0",
+    "nuxt": "^3.17.0",
+    "sanitize-html": "^2.15.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "latest",
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/sanitize-html": "^2.13.0",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^17.0.0",
+    "typescript": "^5.5.0",
+    "unplugin-auto-import": "^19.0.0",
+    "vitest": "^3.0.0"
+  }
+}
