@@ -153,17 +153,20 @@ describe('todo.complete()', () => {
   });
 
   it('updates updatedAt after completing', () => {
-    const todo = makeTodo();
-    const before = todo.updatedAt;
-    // Tiny delay to ensure timestamps differ
     jest.useFakeTimers();
-    jest.advanceTimersByTime(1);
+    jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+
+    const todo = makeTodo();
+    expect(todo.createdAt).toBe('2024-01-01T00:00:00.000Z');
+
+    jest.setSystemTime(new Date('2024-01-01T00:00:01.000Z'));
     todo.pullPendingEvents();
     todo.complete();
+
+    expect(todo.updatedAt).toBe('2024-01-01T00:00:01.000Z');
+    expect(todo.updatedAt).not.toBe(todo.createdAt);
+
     jest.useRealTimers();
-    // updatedAt may or may not have changed depending on timing — just check it's valid
-    expect(todo.updatedAt).toMatch(ISO_TIMESTAMP_PATTERN);
-    void before; // referenced to satisfy linting
   });
 
   it('is idempotent — no state change when already completed', () => {
@@ -214,6 +217,24 @@ describe('todo.reopen()', () => {
     todo.reopen();
     const events = todo.pullPendingEvents();
     expect((events[0] as TodoReopened).todoId).toBe(todo.id);
+  });
+
+  it('updates updatedAt after reopening', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+
+    const todo = makeTodo();
+    todo.pullPendingEvents();
+    todo.complete(); // move to completed first
+
+    jest.setSystemTime(new Date('2024-01-01T00:00:02.000Z'));
+    todo.pullPendingEvents();
+    todo.reopen();
+
+    expect(todo.updatedAt).toBe('2024-01-01T00:00:02.000Z');
+    expect(todo.updatedAt).not.toBe(todo.createdAt);
+
+    jest.useRealTimers();
   });
 
   it('is idempotent — no state change when already active', () => {
@@ -284,6 +305,21 @@ describe('todo.updateTitle()', () => {
     expect((events[0] as TodoTitleUpdated).todoId).toBe(todo.id);
   });
 
+  it('updates updatedAt after updating the title', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+
+    const todo = makeTodo('Original');
+    jest.setSystemTime(new Date('2024-01-01T00:00:03.000Z'));
+    todo.pullPendingEvents();
+    todo.updateTitle(new TodoTitle('Updated'));
+
+    expect(todo.updatedAt).toBe('2024-01-01T00:00:03.000Z');
+    expect(todo.updatedAt).not.toBe(todo.createdAt);
+
+    jest.useRealTimers();
+  });
+
   it('raises InvalidTitleError when new title is blank', () => {
     const todo = makeTodo('Original title');
     todo.pullPendingEvents();
@@ -350,6 +386,38 @@ describe('todo.delete()', () => {
     todo.delete();
     const events = todo.pullPendingEvents();
     expect((events[0] as TodoDeleted).occurredAt).toMatch(ISO_TIMESTAMP_PATTERN);
+  });
+
+  it('updates updatedAt when delete is signalled', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+
+    const todo = makeTodo();
+    jest.setSystemTime(new Date('2024-01-01T00:00:04.000Z'));
+    todo.pullPendingEvents();
+    todo.delete();
+
+    expect(todo.updatedAt).toBe('2024-01-01T00:00:04.000Z');
+    expect(todo.updatedAt).not.toBe(todo.createdAt);
+
+    jest.useRealTimers();
+  });
+
+  it('end-to-end: delete() event triggers repository removal', () => {
+    const repo = new InMemoryTodoRepository();
+    const todo = makeTodo('Task to delete');
+    repo.save(todo);
+    expect(repo.findById(todo.id)).not.toBeNull();
+
+    // Application layer: aggregate signals deletion, then repository acts
+    todo.delete();
+    const events = todo.pullPendingEvents();
+    const deleteEvent = events.find((e) => e.type === 'TodoDeleted');
+    expect(deleteEvent).toBeDefined();
+
+    // Repository removes the record
+    repo.delete(todo.id);
+    expect(repo.findById(todo.id)).toBeNull();
   });
 });
 

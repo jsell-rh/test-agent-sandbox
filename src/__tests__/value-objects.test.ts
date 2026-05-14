@@ -78,13 +78,14 @@ describe('TodoTitle', () => {
       expect(() => new TodoTitle(raw)).toThrow(InvalidTitleError);
     });
 
-    it('raises InvalidTitleError even when the overflow is after trimming', () => {
-      // 501 non-whitespace chars — trim has no effect but should still fail
-      const raw = 'a'.repeat(TodoTitle.MAX_LENGTH + 1);
+    it('raises InvalidTitleError for 501 content chars surrounded by whitespace (overflow after trimming)', () => {
+      // The whitespace wrapper is trimmed, leaving 501 content chars — still invalid
+      const raw = '  ' + 'a'.repeat(TodoTitle.MAX_LENGTH + 1) + '  ';
       expect(() => new TodoTitle(raw)).toThrow(InvalidTitleError);
     });
 
     it('InvalidTitleError has the correct name', () => {
+      expect.assertions(2);
       try {
         new TodoTitle('');
       } catch (e) {

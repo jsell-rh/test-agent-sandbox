@@ -5,8 +5,7 @@
  * state change has been applied. They describe what happened in the past.
  */
 
-import type { TodoId, Timestamp } from './value-objects';
-import type { TodoTitle } from './value-objects';
+import type { TodoId, Timestamp, TodoTitle } from './value-objects';
 
 // ---------------------------------------------------------------------------
 // Individual event shapes (all fields readonly for immutability)

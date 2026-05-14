@@ -10,13 +10,12 @@
 
 import {
   type TodoId,
-  type TodoStatus,
   type Timestamp,
   TodoTitle,
+  TodoStatus,
   generateTodoId,
   currentTimestamp,
 } from './value-objects';
-import { TodoStatus as TodoStatusValues } from './value-objects';
 import type {
   DomainEvent,
   TodoCreated,
@@ -65,7 +64,7 @@ export class Todo {
   static create(title: TodoTitle): Todo {
     const id = generateTodoId();
     const now = currentTimestamp();
-    const todo = new Todo(id, title, TodoStatusValues.Active, now, now);
+    const todo = new Todo(id, title, TodoStatus.Active, now, now);
 
     const event: TodoCreated = Object.freeze({
       type: 'TodoCreated',
@@ -139,11 +138,11 @@ export class Todo {
    * Invariant 3: idempotent — calling on an already-completed Todo is a no-op.
    */
   complete(): TodoCompleted | void {
-    if (this._status === TodoStatusValues.Completed) {
+    if (this._status === TodoStatus.Completed) {
       return;
     }
 
-    this._status = TodoStatusValues.Completed;
+    this._status = TodoStatus.Completed;
     this._updatedAt = currentTimestamp();
 
     const event: TodoCompleted = Object.freeze({
@@ -161,11 +160,11 @@ export class Todo {
    * Invariant 4: idempotent — calling on an already-active Todo is a no-op.
    */
   reopen(): TodoReopened | void {
-    if (this._status === TodoStatusValues.Active) {
+    if (this._status === TodoStatus.Active) {
       return;
     }
 
-    this._status = TodoStatusValues.Active;
+    this._status = TodoStatus.Active;
     this._updatedAt = currentTimestamp();
 
     const event: TodoReopened = Object.freeze({
@@ -202,12 +201,12 @@ export class Todo {
    * Actual deletion is delegated to the TodoRepository.
    */
   delete(): TodoDeleted {
-    const now = currentTimestamp();
+    this._updatedAt = currentTimestamp();
 
     const event: TodoDeleted = Object.freeze({
       type: 'TodoDeleted',
       todoId: this._id,
-      occurredAt: now,
+      occurredAt: this._updatedAt,
     });
 
     this._pendingEvents.push(event);

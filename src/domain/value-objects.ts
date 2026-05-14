@@ -41,6 +41,9 @@ export class TodoTitle {
     }
 
     this._value = trimmed;
+    // Freeze the instance so runtime reflection cannot mutate _value.
+    // This ensures events that carry TodoTitle references are truly immutable.
+    Object.freeze(this);
   }
 
   get value(): string {
