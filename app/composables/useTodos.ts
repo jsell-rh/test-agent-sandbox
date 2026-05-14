@@ -38,6 +38,11 @@ export interface TodoListResponse {
   }
 }
 
+/** Shape of the DELETE /api/todos?status=completed response body. */
+export interface ClearCompletedResponse {
+  deletedCount: number
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -57,22 +62,37 @@ export const FILTER_COMPLETED: FilterCriteria = 'completed'
  */
 export const API_TODOS_PATH = '/api/todos'
 
+/**
+ * The path for the bulk-delete completed todos endpoint.
+ *
+ * Used by `clearCompleted()` — exported so tests can reference it
+ * without hardcoding the literal (configuration hardcoding rule).
+ */
+export const API_TODOS_COMPLETED_PATH = '/api/todos?status=completed'
+
 // ---------------------------------------------------------------------------
 // Composable
 // ---------------------------------------------------------------------------
 
 /**
  * Returns the three state variables and derived state from the UI State Machine,
- * plus `loadTodos()` which must be called on page mount.
+ * plus `loadTodos()` and `clearCompleted()` which drive API interactions.
  *
- * @param fetchFn - optional fetch override; defaults to the global $fetch (Nuxt).
+ * @param fetchFn   - optional fetch override; defaults to the global $fetch (Nuxt).
  *   Accepts a replacement so that unit tests can inject a fake without
  *   touching global state.
+ * @param deleteFn  - optional DELETE override for `clearCompleted()`.
+ *   Defaults to `$fetch` with `{ method: 'DELETE' }`.
  */
 export function useTodos(
   fetchFn: (url: string) => Promise<TodoListResponse> = (url) =>
     // eslint-disable-next-line no-undef
     ($fetch as (url: string) => Promise<TodoListResponse>)(url),
+  deleteFn: (url: string) => Promise<ClearCompletedResponse> = (url) =>
+    // eslint-disable-next-line no-undef
+    ($fetch as (url: string, opts: { method: string }) => Promise<ClearCompletedResponse>)(url, {
+      method: 'DELETE',
+    }),
 ) {
   // ---------------------------------------------------
   // State machine (spec: UI State Machine)
@@ -131,6 +151,20 @@ export function useTodos(
     todos.value = data.todos
   }
 
+  /**
+   * Bulk-delete all completed todos via DELETE /api/todos?status=completed.
+   *
+   * On success, removes all completed items from todos[] client-side so the UI
+   * reflects the change immediately without a subsequent loadTodos() call.
+   *
+   * @returns the `deletedCount` reported by the API.
+   */
+  async function clearCompleted(): Promise<number> {
+    const result = await deleteFn(API_TODOS_COMPLETED_PATH)
+    todos.value = todos.value.filter(t => t.status !== FILTER_COMPLETED)
+    return result.deletedCount
+  }
+
   return {
     // State
     todos,
@@ -141,5 +175,6 @@ export function useTodos(
     counts,
     // Actions
     loadTodos,
+    clearCompleted,
   }
 }

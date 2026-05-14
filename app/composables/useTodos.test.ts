@@ -13,8 +13,15 @@
  */
 
 import { describe, it, expect, vi } from 'vitest'
-import { useTodos, FILTER_ALL, FILTER_ACTIVE, FILTER_COMPLETED, API_TODOS_PATH } from './useTodos'
-import type { TodoResource, TodoListResponse } from './useTodos'
+import {
+  useTodos,
+  FILTER_ALL,
+  FILTER_ACTIVE,
+  FILTER_COMPLETED,
+  API_TODOS_PATH,
+  API_TODOS_COMPLETED_PATH,
+} from './useTodos'
+import type { TodoResource, TodoListResponse, ClearCompletedResponse } from './useTodos'
 
 // ---------------------------------------------------------------------------
 // Fake helpers
@@ -232,5 +239,87 @@ describe('useTodos — counts computed', () => {
 
     filter.value = FILTER_COMPLETED
     expect(counts.value).toEqual({ all: 2, active: 1, completed: 1 })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// clearCompleted — bulk delete action
+// ---------------------------------------------------------------------------
+
+/** Fake delete function that resolves with the given response. */
+function fakeDeleteFn(response: ClearCompletedResponse) {
+  return vi.fn().mockResolvedValue(response)
+}
+
+describe('useTodos — clearCompleted()', () => {
+  it('calls DELETE on API_TODOS_COMPLETED_PATH', async () => {
+    const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: 'active' })
+    const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: 'completed' })
+    const fetch = fakeFetch(fakeResponse([active, completed]))
+    const deleteFn = fakeDeleteFn({ deletedCount: 1 })
+    const { loadTodos, clearCompleted } = useTodos(fetch, deleteFn)
+    await loadTodos()
+
+    await clearCompleted()
+
+    expect(deleteFn).toHaveBeenCalledOnce()
+    expect(deleteFn).toHaveBeenCalledWith(API_TODOS_COMPLETED_PATH)
+  })
+
+  it('removes all completed todos from todos[]', async () => {
+    const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: 'active' })
+    const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: 'completed' })
+    const fetch = fakeFetch(fakeResponse([active, completed]))
+    const deleteFn = fakeDeleteFn({ deletedCount: 1 })
+    const { todos, loadTodos, clearCompleted } = useTodos(fetch, deleteFn)
+    await loadTodos()
+
+    expect(todos.value).toHaveLength(2)
+
+    await clearCompleted()
+
+    expect(todos.value).toHaveLength(1)
+    expect(todos.value[0]!.status).toBe(FILTER_ACTIVE)
+  })
+
+  it('leaves active todos intact after clearCompleted', async () => {
+    const active1 = makeTodo({ id: '00000000-0000-4000-8000-000000000001', title: 'Keep me', status: 'active' })
+    const active2 = makeTodo({ id: '00000000-0000-4000-8000-000000000002', title: 'Keep me too', status: 'active' })
+    const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000003', status: 'completed' })
+    const fetch = fakeFetch(fakeResponse([active1, active2, completed]))
+    const deleteFn = fakeDeleteFn({ deletedCount: 1 })
+    const { todos, loadTodos, clearCompleted } = useTodos(fetch, deleteFn)
+    await loadTodos()
+
+    await clearCompleted()
+
+    expect(todos.value).toHaveLength(2)
+    expect(todos.value.map(t => t.title)).toEqual(['Keep me', 'Keep me too'])
+  })
+
+  it('returns the deletedCount from the API response', async () => {
+    const c1 = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: 'completed' })
+    const c2 = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: 'completed' })
+    const fetch = fakeFetch(fakeResponse([c1, c2]))
+    const deleteFn = fakeDeleteFn({ deletedCount: 2 })
+    const { loadTodos, clearCompleted } = useTodos(fetch, deleteFn)
+    await loadTodos()
+
+    const count = await clearCompleted()
+
+    expect(count).toBe(2)
+  })
+
+  it('when no completed todos exist, todos[] is unchanged and deletedCount is 0', async () => {
+    const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: 'active' })
+    const fetch = fakeFetch(fakeResponse([active]))
+    const deleteFn = fakeDeleteFn({ deletedCount: 0 })
+    const { todos, loadTodos, clearCompleted } = useTodos(fetch, deleteFn)
+    await loadTodos()
+
+    const count = await clearCompleted()
+
+    expect(todos.value).toHaveLength(1)
+    expect(count).toBe(0)
   })
 })
