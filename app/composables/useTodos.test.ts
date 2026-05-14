@@ -6,15 +6,16 @@
  *   - loadTodos() populates todos[] from the API response
  *   - filteredTodos computed follows the active FilterCriteria
  *   - counts computed reflects the full todos[], not the filtered view
+ *   - createTodo() prepends new todo and delegates to POST /api/todos
  *
  * Strategy:
- *   A fake fetch function is injected via the optional parameter so tests
+ *   Fake fetch/create functions are injected via optional parameters so tests
  *   exercise real behaviour without touching the network or Nuxt globals.
  */
 
 import { describe, it, expect, vi } from 'vitest'
 import { useTodos, FILTER_ALL, FILTER_ACTIVE, FILTER_COMPLETED, API_TODOS_PATH } from './useTodos'
-import type { TodoResource, TodoListResponse } from './useTodos'
+import type { TodoResource, TodoListResponse, CreateFn } from './useTodos'
 
 // ---------------------------------------------------------------------------
 // Fake helpers
@@ -232,5 +233,87 @@ describe('useTodos — counts computed', () => {
 
     filter.value = FILTER_COMPLETED
     expect(counts.value).toEqual({ all: 2, active: 1, completed: 1 })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// createTodo — POST /api/todos
+// ---------------------------------------------------------------------------
+
+/** Fake CreateFn helper — resolves with the given TodoResource. */
+function fakeCreate(todo: TodoResource): CreateFn {
+  return vi.fn().mockResolvedValue(todo)
+}
+
+describe('useTodos — createTodo()', () => {
+  it('calls the create function with API_TODOS_PATH and the title', async () => {
+    const newTodo = makeTodo({ title: 'New task' })
+    const createFn = fakeCreate(newTodo)
+    const { createTodo } = useTodos(fakeFetch(fakeResponse([])), createFn)
+
+    await createTodo('New task')
+
+    expect(createFn).toHaveBeenCalledOnce()
+    expect(createFn).toHaveBeenCalledWith(API_TODOS_PATH, { title: 'New task' })
+  })
+
+  it('prepends the returned todo to todos[] (newest first)', async () => {
+    const existing = makeTodo({
+      id: '00000000-0000-4000-8000-000000000001',
+      title: 'Existing',
+      createdAt: '2024-01-01T09:00:00.000Z',
+    })
+    const created = makeTodo({
+      id: '00000000-0000-4000-8000-000000000002',
+      title: 'New task',
+      createdAt: '2024-01-01T10:00:00.000Z',
+    })
+
+    const { todos, loadTodos, createTodo } = useTodos(
+      fakeFetch(fakeResponse([existing])),
+      fakeCreate(created),
+    )
+    await loadTodos()
+    await createTodo('New task')
+
+    expect(todos.value).toHaveLength(2)
+    expect(todos.value[0]!.title).toBe('New task')  // prepended at front
+    expect(todos.value[1]!.title).toBe('Existing')
+  })
+
+  it('updates counts immediately after creating', async () => {
+    const created = makeTodo({ id: '00000000-0000-4000-8000-000000000002', title: 'New' })
+    const { counts, loadTodos, createTodo } = useTodos(
+      fakeFetch(fakeResponse([])),
+      fakeCreate(created),
+    )
+    await loadTodos()
+    expect(counts.value.all).toBe(0)
+
+    await createTodo('New')
+    expect(counts.value.all).toBe(1)
+    expect(counts.value.active).toBe(1)
+  })
+
+  it('leaves todos[] unchanged when the API call fails', async () => {
+    const existing = makeTodo({ title: 'Existing' })
+    const createFn: CreateFn = vi.fn().mockRejectedValue(new Error('Internal Server Error'))
+
+    const { todos, loadTodos, createTodo } = useTodos(
+      fakeFetch(fakeResponse([existing])),
+      createFn,
+    )
+    await loadTodos()
+
+    await expect(createTodo('New task')).rejects.toThrow('Internal Server Error')
+    expect(todos.value).toHaveLength(1)
+    expect(todos.value[0]!.title).toBe('Existing')
+  })
+
+  it('re-throws the error so callers can handle it', async () => {
+    const createFn: CreateFn = vi.fn().mockRejectedValue(new Error('Server Error'))
+    const { createTodo } = useTodos(fakeFetch(fakeResponse([])), createFn)
+
+    await expect(createTodo('Anything')).rejects.toThrow('Server Error')
   })
 })

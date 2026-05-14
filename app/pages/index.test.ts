@@ -5,6 +5,7 @@
  *   - Page renders without errors on mount
  *   - Initial load calls GET /api/todos and populates the todo list
  *   - Todos are displayed in the ordered list
+ *   - NewTodoInput is rendered and wired with createTodo
  *
  * Strategy:
  *   vi.mock() replaces useTodos with a controlled fake that:
@@ -12,10 +13,12 @@
  *        correctly when loadTodos() is called.
  *     2. Implements loadTodos() to actually populate todos[] — matching the
  *        production data-flow path (mount → loadTodos → todos updates → DOM).
+ *     3. Exposes createTodo as a spy so tests can assert it is passed to
+ *        NewTodoInput as a prop.
  *   `fakeTodos` is set before each mount to control what the "API" returns.
  *
- *   Composable behaviour (state transitions, filtering, counts) is covered
- *   exhaustively in useTodos.test.ts.
+ *   Composable behaviour (state transitions, filtering, counts, createTodo)
+ *   is covered exhaustively in useTodos.test.ts and NewTodoInput.test.ts.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -65,7 +68,10 @@ vi.mock('../composables/useTodos', async (importOriginal) => {
         todos.value = [...fakeTodos]
       })
 
-      return { todos, filter, editingTodoId, filteredTodos, counts, loadTodos }
+      // createTodo() prepends a new todo — spy so tests can assert prop wiring.
+      const createTodo = vi.fn().mockResolvedValue(undefined)
+
+      return { todos, filter, editingTodoId, filteredTodos, counts, loadTodos, createTodo }
     },
   }
 })
@@ -79,6 +85,7 @@ import IndexPage from './index.vue'
 
 const TODO_LIST_SELECTOR = '[data-testid="todo-list"]'
 const TODO_ITEM_SELECTOR = '[data-testid="todo-item"]'
+const NEW_TODO_INPUT_STUB = '[data-testid="new-todo-input-stub"]'
 
 function makeTodo(overrides: Partial<TodoResource> = {}): TodoResource {
   return {
@@ -97,6 +104,13 @@ function mountPage() {
       stubs: {
         // Stub AppHeader to isolate the page component under test.
         AppHeader: { template: '<header data-testid="app-header">todos</header>' },
+        // Stub NewTodoInput to isolate the page; NewTodoInput is tested separately.
+        NewTodoInput: {
+          name: 'NewTodoInput',
+          template: '<input data-testid="new-todo-input-stub" />',
+          props: ['createTodo'],
+          emits: ['error'],
+        },
       },
     },
   })
@@ -196,5 +210,45 @@ describe('pages/index.vue — todo list', () => {
     const wrapper = mountPage()
     // Synchronously after mount, todos[] should still be empty.
     expect(wrapper.findAll(TODO_ITEM_SELECTOR)).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// NewTodoInput wiring — page passes createTodo to the component
+// ---------------------------------------------------------------------------
+
+describe('pages/index.vue — NewTodoInput wiring', () => {
+  it('renders the NewTodoInput stub', () => {
+    const wrapper = mountPage()
+    expect(wrapper.find(NEW_TODO_INPUT_STUB).exists()).toBe(true)
+  })
+
+  it('passes the createTodo action from useTodos to NewTodoInput', async () => {
+    const wrapper = mountPage()
+    const newTodoStub = wrapper.findComponent({ name: 'NewTodoInput' })
+
+    // Call the prop directly — if it's the correct createTodo from useTodos,
+    // it will invoke the spy registered in the mock.
+    const createTodoProp = newTodoStub.props('createTodo') as (title: string) => Promise<void>
+    await createTodoProp('Test title')
+
+    // Retrieve the spy from setupState to confirm it was invoked.
+    const { createTodo } = wrapper.getCurrentComponent().setupState as {
+      createTodo: ReturnType<typeof vi.fn>
+    }
+    expect(createTodo).toHaveBeenCalledOnce()
+    expect(createTodo).toHaveBeenCalledWith('Test title')
+  })
+
+  it('handles the error event from NewTodoInput without crashing', async () => {
+    const wrapper = mountPage()
+    const newTodoStub = wrapper.findComponent({ name: 'NewTodoInput' })
+
+    // Simulate NewTodoInput emitting an error event.
+    await newTodoStub.vm.$emit('error', 'Something went wrong')
+    await flushPromises()
+
+    // The page must not crash; the error is stored for the display task.
+    expect(wrapper.exists()).toBe(true)
   })
 })

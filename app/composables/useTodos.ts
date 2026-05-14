@@ -38,6 +38,19 @@ export interface TodoListResponse {
   }
 }
 
+/** Shape of the POST /api/todos request body. */
+export interface CreateTodoRequest {
+  title: string
+}
+
+/**
+ * Injection-point type for POST /api/todos.
+ *
+ * Accepts the endpoint URL and the request body; returns the created TodoResource.
+ * Exported so tests can type their fake without casting.
+ */
+export type CreateFn = (url: string, body: CreateTodoRequest) => Promise<TodoResource>
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -63,16 +76,19 @@ export const API_TODOS_PATH = '/api/todos'
 
 /**
  * Returns the three state variables and derived state from the UI State Machine,
- * plus `loadTodos()` which must be called on page mount.
+ * plus action functions that must be wired to user interactions.
  *
- * @param fetchFn - optional fetch override; defaults to the global $fetch (Nuxt).
- *   Accepts a replacement so that unit tests can inject a fake without
- *   touching global state.
+ * @param fetchFn  - optional fetch override for GET /api/todos; defaults to $fetch.
+ * @param createFn - optional create override for POST /api/todos; defaults to $fetch.
+ *   Both parameters exist so unit tests can inject fakes without touching Nuxt globals.
  */
 export function useTodos(
   fetchFn: (url: string) => Promise<TodoListResponse> = (url) =>
     // eslint-disable-next-line no-undef
     ($fetch as (url: string) => Promise<TodoListResponse>)(url),
+  createFn: CreateFn = (url, body) =>
+    // eslint-disable-next-line no-undef
+    ($fetch as unknown as CreateFn)(url, { method: 'POST', body } as never),
 ) {
   // ---------------------------------------------------
   // State machine (spec: UI State Machine)
@@ -131,6 +147,22 @@ export function useTodos(
     todos.value = data.todos
   }
 
+  /**
+   * Create a new Todo via POST /api/todos and prepend it to todos[].
+   *
+   * Spec (UI State Machine):
+   *   POST /api/todos -> on success: prepend to todos[], clear input
+   *
+   * Throws on API error so the caller (NewTodoInput) can rollback UI state
+   * (leave input unchanged) and surface the error to the user.
+   *
+   * @param title - The raw title string from the input field.
+   */
+  async function createTodo(title: string): Promise<void> {
+    const newTodo = await createFn(API_TODOS_PATH, { title })
+    todos.value = [newTodo, ...todos.value]
+  }
+
   return {
     // State
     todos,
@@ -141,5 +173,6 @@ export function useTodos(
     counts,
     // Actions
     loadTodos,
+    createTodo,
   }
 }
