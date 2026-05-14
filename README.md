@@ -1,6 +1,6 @@
 # Todos
 
-Enterprise-grade todo management built with Nuxt 4 and SQLite.
+Todo management application built with Nuxt 4 and SQLite.
 
 ## Prerequisites
 
@@ -27,6 +27,8 @@ Open [http://localhost:3000](http://localhost:3000).
 npm run build
 npm run preview
 ```
+
+Open [http://localhost:3000](http://localhost:3000).
 
 ## Configuration
 
