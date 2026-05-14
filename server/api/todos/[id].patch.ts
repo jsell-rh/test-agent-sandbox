@@ -19,11 +19,11 @@
  */
 
 import { defineEventHandler, getRouterParam, readBody } from 'h3'
-import { getTodoRepository } from '~/server/plugins/database'
-import { TodoTitle } from '~/server/domain/value-objects/TodoTitle'
-import { TodoStatus } from '~/server/domain/value-objects/TodoStatus'
-import { InvalidTitleError } from '~/server/domain/errors/InvalidTitleError'
-import { notFound, badRequest, invalidTitle } from '~/server/utils/errors'
+import { getTodoRepository } from '~~/server/plugins/database'
+import { TodoTitle } from '~~/server/domain/value-objects/TodoTitle'
+import { TodoStatus } from '~~/server/domain/value-objects/TodoStatus'
+import { InvalidTitleError } from '~~/server/domain/errors/InvalidTitleError'
+import { notFound, badRequest, invalidTitle } from '~~/server/utils/errors'
 import { toResource } from './_resource'
 
 export default defineEventHandler(async (event) => {

@@ -8,8 +8,8 @@
  */
 
 import { defineEventHandler, getRouterParam } from 'h3'
-import { getTodoRepository } from '~/server/plugins/database'
-import { notFound } from '~/server/utils/errors'
+import { getTodoRepository } from '~~/server/plugins/database'
+import { notFound } from '~~/server/utils/errors'
 import { toResource } from './_resource'
 
 export default defineEventHandler(async (event) => {

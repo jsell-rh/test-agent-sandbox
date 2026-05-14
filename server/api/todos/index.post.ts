@@ -11,11 +11,11 @@
  */
 
 import { defineEventHandler, readBody, setResponseStatus } from 'h3'
-import { getTodoRepository } from '~/server/plugins/database'
-import { Todo } from '~/server/domain/Todo'
-import { TodoTitle } from '~/server/domain/value-objects/TodoTitle'
-import { InvalidTitleError } from '~/server/domain/errors/InvalidTitleError'
-import { badRequest, invalidTitle } from '~/server/utils/errors'
+import { getTodoRepository } from '~~/server/plugins/database'
+import { Todo } from '~~/server/domain/Todo'
+import { TodoTitle } from '~~/server/domain/value-objects/TodoTitle'
+import { InvalidTitleError } from '~~/server/domain/errors/InvalidTitleError'
+import { badRequest, invalidTitle } from '~~/server/utils/errors'
 import { toResource } from './_resource'
 
 export default defineEventHandler(async (event) => {

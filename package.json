@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build",
+    "build": "nuxt build && cp -r server/infrastructure/persistence/migrations .output/server/migrations",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",

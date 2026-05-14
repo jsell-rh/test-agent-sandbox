@@ -11,9 +11,9 @@
  */
 
 import { defineEventHandler, getQuery } from 'h3'
-import { getTodoRepository } from '~/server/plugins/database'
-import { FilterCriteria } from '~/server/domain/value-objects/FilterCriteria'
-import { badRequest } from '~/server/utils/errors'
+import { getTodoRepository } from '~~/server/plugins/database'
+import { FilterCriteria } from '~~/server/domain/value-objects/FilterCriteria'
+import { badRequest } from '~~/server/utils/errors'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)

@@ -6,9 +6,9 @@
  */
 
 import { isError } from 'h3'
-import { InvalidTitleError } from '~/server/domain/errors/InvalidTitleError'
-import { TodoNotFoundError } from '~/server/domain/errors/TodoNotFoundError'
-import type { ApiErrorCode } from '~/server/utils/errors'
+import { InvalidTitleError } from '~~/server/domain/errors/InvalidTitleError'
+import { TodoNotFoundError } from '~~/server/domain/errors/TodoNotFoundError'
+import type { ApiErrorCode } from '~~/server/utils/errors'
 
 export interface ApiErrorBody {
   error: ApiErrorCode

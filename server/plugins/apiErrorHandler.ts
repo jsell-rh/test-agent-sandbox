@@ -9,7 +9,7 @@
  */
 
 import { setResponseStatus, setHeader, send } from 'h3'
-import { formatApiError } from '~/server/utils/errorFormatter'
+import { formatApiError } from '~~/server/utils/errorFormatter'
 
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('error', async (error, { event }) => {

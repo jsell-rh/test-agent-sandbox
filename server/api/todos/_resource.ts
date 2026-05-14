@@ -8,7 +8,7 @@
  * Route handlers import `toResource()` to convert domain Todos to API responses.
  */
 
-import type { Todo } from '~/server/domain/Todo'
+import type { Todo } from '~~/server/domain/Todo'
 
 /** JSON representation of a Todo, as specified in the Interface Spec. */
 export interface TodoResource {

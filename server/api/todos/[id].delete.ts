@@ -8,8 +8,8 @@
  */
 
 import { defineEventHandler, getRouterParam, setResponseStatus } from 'h3'
-import { getTodoRepository } from '~/server/plugins/database'
-import { notFound } from '~/server/utils/errors'
+import { getTodoRepository } from '~~/server/plugins/database'
+import { notFound } from '~~/server/utils/errors'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')!
