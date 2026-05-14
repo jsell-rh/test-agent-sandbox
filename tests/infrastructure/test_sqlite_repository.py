@@ -416,12 +416,29 @@ class TestFailureModes:
     def test_database_path_env_var_missing_falls_back_to_default(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path
     ) -> None:
-        """When DATABASE_PATH is not set, the repo creates ./todos.db (relative path)."""
+        """When DATABASE_PATH is unset, the repo uses DEFAULT_DATABASE_PATH."""
+        import todo.infrastructure.sqlite_repository as repo_module
+
         monkeypatch.delenv("DATABASE_PATH", raising=False)
         db_path = tmp_path / "todos.db"
-        # Override default to a writable tmp location to avoid littering the cwd
-        repo = SqliteTodoRepository(database_path=str(db_path))
+        monkeypatch.setattr(repo_module, "DEFAULT_DATABASE_PATH", str(db_path))
+
+        repo = SqliteTodoRepository()
         try:
-            assert db_path.exists()
+            assert db_path.exists(), "Expected DB file to be created at DEFAULT_DATABASE_PATH"
         finally:
             repo.close()
+
+    def test_save_wraps_database_error_as_persistence_error(
+        self, repo: SqliteTodoRepository
+    ) -> None:
+        """save() converts sqlite3.Error to PersistenceError (not a raw driver error)."""
+        todo = make_todo("Will fail on save")
+        todo.pull_events()
+
+        # Drop the table to force a DB error on the next write
+        repo._connection.execute("DROP TABLE todos;")
+        repo._connection.commit()
+
+        with pytest.raises(PersistenceError):
+            repo.save(todo)

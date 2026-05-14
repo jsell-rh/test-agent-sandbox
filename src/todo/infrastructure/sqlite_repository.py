@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 DATABASE_PATH_ENV_VAR = "DATABASE_PATH"
 DEFAULT_DATABASE_PATH = "./todos.db"
 BUSY_TIMEOUT_MS = 5000
+JOURNAL_MODE = "WAL"
 
 _MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
@@ -79,9 +80,9 @@ _SQL_DELETE = "DELETE FROM todos WHERE id = ?;"
 
 _SQL_COUNTS = """
 SELECT
-    COUNT(*)                                              AS all_count,
-    SUM(CASE WHEN status = 'active'    THEN 1 ELSE 0 END) AS active_count,
-    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_count
+    COUNT(*)                                              AS "all",
+    SUM(CASE WHEN status = 'active'    THEN 1 ELSE 0 END) AS active,
+    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed
 FROM todos;
 """
 
@@ -111,9 +112,13 @@ class SqliteTodoRepository(TodoRepository):
             self._connection = self._open_connection(resolved_path)
             self._apply_migrations()
         except sqlite3.Error as exc:
-            raise DatabaseInitError(
-                f"Failed to initialise database at {resolved_path!r}: {exc}"
-            ) from exc
+            logger.error(
+                "Database initialisation failed at %r: %s",
+                resolved_path,
+                exc,
+                exc_info=True,
+            )
+            raise DatabaseInitError("Database initialisation failed") from exc
 
     # ------------------------------------------------------------------
     # Internal: connection management
@@ -137,7 +142,15 @@ class SqliteTodoRepository(TodoRepository):
     def _open_connection(database_path: str) -> sqlite3.Connection:
         conn = sqlite3.connect(database_path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
-        conn.execute(f"PRAGMA journal_mode=WAL;")
+        actual_mode = conn.execute(
+            f"PRAGMA journal_mode={JOURNAL_MODE};"
+        ).fetchone()[0]
+        if actual_mode != JOURNAL_MODE.lower() and database_path != ":memory:":
+            logger.warning(
+                "Requested journal_mode=%r but got %r (may not be supported on this filesystem)",
+                JOURNAL_MODE,
+                actual_mode,
+            )
         conn.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS};")
         return conn
 
@@ -185,7 +198,8 @@ class SqliteTodoRepository(TodoRepository):
             self._connection.execute(sql, params)
             self._connection.commit()
         except sqlite3.Error as exc:
-            raise PersistenceError(f"Database write failed: {exc}") from exc
+            logger.error("Database write failed: %s", exc, exc_info=True)
+            raise PersistenceError("Database write failed") from exc
 
     # ------------------------------------------------------------------
     # Internal: row -> domain mapping
@@ -211,11 +225,11 @@ class SqliteTodoRepository(TodoRepository):
             return None
         return self._row_to_todo(row)
 
-    def find_all(self, filter: FilterCriteria = FilterCriteria.ALL) -> list[Todo]:
-        if filter is FilterCriteria.ALL:
+    def find_all(self, criteria: FilterCriteria = FilterCriteria.ALL) -> list[Todo]:
+        if criteria == FilterCriteria.ALL:
             rows = self._connection.execute(_SQL_FIND_ALL).fetchall()
         else:
-            rows = self._connection.execute(_SQL_FIND_BY_STATUS, (filter.value,)).fetchall()
+            rows = self._connection.execute(_SQL_FIND_BY_STATUS, (criteria.value,)).fetchall()
         return [self._row_to_todo(row) for row in rows]
 
     def save(self, todo: Todo) -> None:
@@ -232,19 +246,21 @@ class SqliteTodoRepository(TodoRepository):
             )
             self._connection.commit()
         except sqlite3.Error as exc:
-            raise PersistenceError(f"Failed to save todo {todo.id.value!r}: {exc}") from exc
+            logger.error("Failed to save todo %r: %s", todo.id.value, exc, exc_info=True)
+            raise PersistenceError("Failed to save todo") from exc
 
     def delete(self, id: TodoId) -> None:
         try:
             self._connection.execute(_SQL_DELETE, (id.value,))
             self._connection.commit()
         except sqlite3.Error as exc:
-            raise PersistenceError(f"Failed to delete todo {id.value!r}: {exc}") from exc
+            logger.error("Failed to delete todo %r: %s", id.value, exc, exc_info=True)
+            raise PersistenceError("Failed to delete todo") from exc
 
     def counts(self) -> dict[str, int]:
         row = self._connection.execute(_SQL_COUNTS).fetchone()
         return {
-            "all": row["all_count"] or 0,
-            "active": row["active_count"] or 0,
-            "completed": row["completed_count"] or 0,
+            "all": row["all"] or 0,
+            "active": row["active"] or 0,
+            "completed": row["completed"] or 0,
         }

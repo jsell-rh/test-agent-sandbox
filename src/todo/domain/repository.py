@@ -26,12 +26,12 @@ class TodoRepository(ABC):
         """
 
     @abstractmethod
-    def find_all(self, filter: FilterCriteria = FilterCriteria.ALL) -> list[Todo]:
+    def find_all(self, criteria: FilterCriteria = FilterCriteria.ALL) -> list[Todo]:
         """
         Return todos ordered by created_at descending.
 
         Args:
-            filter: Restrict results to 'active', 'completed', or 'all' (default).
+            criteria: Restrict results to 'active', 'completed', or 'all' (default).
         """
 
     @abstractmethod
