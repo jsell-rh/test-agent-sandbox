@@ -152,6 +152,14 @@ describe('todo.complete()', () => {
     expect((events[0] as TodoCompleted).todoId).toBe(todo.id);
   });
 
+  it('TodoCompleted event has a valid ISO timestamp', () => {
+    const todo = makeTodo();
+    todo.pullPendingEvents();
+    todo.complete();
+    const events = todo.pullPendingEvents();
+    expect((events[0] as TodoCompleted).occurredAt).toMatch(ISO_TIMESTAMP_PATTERN);
+  });
+
   it('updates updatedAt after completing', () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
@@ -217,6 +225,13 @@ describe('todo.reopen()', () => {
     todo.reopen();
     const events = todo.pullPendingEvents();
     expect((events[0] as TodoReopened).todoId).toBe(todo.id);
+  });
+
+  it('TodoReopened event has a valid ISO timestamp', () => {
+    const todo = makeCompletedTodo();
+    todo.reopen();
+    const events = todo.pullPendingEvents();
+    expect((events[0] as TodoReopened).occurredAt).toMatch(ISO_TIMESTAMP_PATTERN);
   });
 
   it('updates updatedAt after reopening', () => {
