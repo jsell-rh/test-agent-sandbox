@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
     }
     else {
       throw badRequest(
-        `Unknown status value: "${String(body.status)}". Must be "active" or "completed".`,
+        `Unknown status value: "${String(body.status)}". Must be one of: ${Object.values(TodoStatus).join(', ')}.`,
       )
     }
   }

@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   if (filterParam !== undefined) {
     if (!VALID_FILTER_VALUES.has(filterParam)) {
       throw badRequest(
-        `Invalid filter value: "${filterParam}". Must be one of: all, active, completed.`,
+        `Invalid filter value: "${filterParam}". Must be one of: ${Object.values(FilterCriteria).join(', ')}.`,
       )
     }
     filter = filterParam as FilterCriteria

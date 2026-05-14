@@ -189,16 +189,21 @@ describe('GET /api/todos', () => {
     expect(data.counts.completed).toBe(1)
   })
 
-  it('filter=completed excludes active todos from list', async () => {
+  it('filter=completed excludes active todos from list but counts reflect all', async () => {
     seedTodo('Active todo')
     seedCompletedTodo('Done todo')
 
     const res = await req('/api/todos?filter=completed')
     expect(res.status).toBe(200)
 
-    const data = await json<{ todos: Array<{ status: string }> }>(res)
+    const data = await json<{ todos: Array<{ status: string }>; counts: Record<string, number> }>(res)
     expect(data.todos).toHaveLength(1)
     expect(data.todos[0]!.status).toBe('completed')
+
+    // counts always reflect ALL todos, regardless of filter
+    expect(data.counts.all).toBe(2)
+    expect(data.counts.active).toBe(1)
+    expect(data.counts.completed).toBe(1)
   })
 
   it('filter=all returns both active and completed todos', async () => {
@@ -214,8 +219,10 @@ describe('GET /api/todos', () => {
     const res = await req('/api/todos?filter=bogus')
 
     expect(res.status).toBe(400)
-    const data = await json<{ error: string }>(res)
+    const data = await json<{ error: string; message: string }>(res)
     expect(data.error).toBe('BAD_REQUEST')
+    expect(typeof data.message).toBe('string')
+    expect(data.message.length).toBeGreaterThan(0)
   })
 
   it('todo list is ordered newest first (createdAt descending)', async () => {
@@ -278,8 +285,10 @@ describe('POST /api/todos', () => {
     })
 
     expect(res.status).toBe(422)
-    const data = await json<{ error: string }>(res)
+    const data = await json<{ error: string; message: string }>(res)
     expect(data.error).toBe('INVALID_TITLE')
+    expect(typeof data.message).toBe('string')
+    expect(data.message.length).toBeGreaterThan(0)
   })
 
   it('whitespace-only title returns 422 with INVALID_TITLE error', async () => {
@@ -339,8 +348,10 @@ describe('GET /api/todos/:id', () => {
     const res = await req('/api/todos/00000000-0000-0000-0000-000000000000')
 
     expect(res.status).toBe(404)
-    const data = await json<{ error: string }>(res)
+    const data = await json<{ error: string; message: string }>(res)
     expect(data.error).toBe('TODO_NOT_FOUND')
+    expect(typeof data.message).toBe('string')
+    expect(data.message.length).toBeGreaterThan(0)
   })
 })
 

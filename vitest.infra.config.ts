@@ -28,7 +28,10 @@ export default defineConfig({
   resolve: {
     conditions: ['node'],
     alias: {
+      // ~ resolves to project root (used by server utility files)
       '~': resolve(import.meta.dirname),
+      // ~~ also resolves to project root (Nuxt 4 project-root alias used in route handlers)
+      '~~': resolve(import.meta.dirname),
     },
   },
 })

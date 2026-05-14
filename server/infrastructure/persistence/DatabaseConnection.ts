@@ -4,6 +4,9 @@ import { DatabaseInitError } from '../errors/DatabaseInitError.js'
 /** Default database file path when DATABASE_PATH env var is absent. */
 const DEFAULT_DATABASE_PATH = './todos.db'
 
+/** Milliseconds a writer waits for a locked database before throwing. */
+const BUSY_TIMEOUT_MS = 5000
+
 /**
  * Opens and configures a SQLite connection.
  *
@@ -30,8 +33,8 @@ export function openDatabase(databasePath?: string): Database.Database {
     // Enable WAL mode for durability and concurrent-read performance
     db.pragma('journal_mode = WAL')
 
-    // Wait up to 5 s before failing on a locked database
-    db.pragma('busy_timeout = 5000')
+    // Wait up to BUSY_TIMEOUT_MS before failing on a locked database
+    db.pragma(`busy_timeout = ${BUSY_TIMEOUT_MS}`)
 
     return db
   }

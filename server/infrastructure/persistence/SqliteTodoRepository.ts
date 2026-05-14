@@ -162,9 +162,9 @@ export class SqliteTodoRepository implements TodoRepository {
       const row = this.db
         .prepare<[], CountsRow>(`
           SELECT
-            COUNT(*)                                                  AS total,
-            SUM(CASE WHEN status = 'active'    THEN 1 ELSE 0 END)    AS active,
-            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)    AS completed
+            COUNT(*)                                                                       AS total,
+            SUM(CASE WHEN status = '${TodoStatus.active}'    THEN 1 ELSE 0 END)           AS active,
+            SUM(CASE WHEN status = '${TodoStatus.completed}' THEN 1 ELSE 0 END)           AS completed
           FROM todos
         `)
         .get()
@@ -191,10 +191,13 @@ export class SqliteTodoRepository implements TodoRepository {
    * Reconstitution re-validates the title but does NOT emit domain events.
    */
   private _rowToTodo(row: TodoRow): Todo {
-    const status
-      = row.status === TodoStatus.completed
-        ? TodoStatus.completed
-        : TodoStatus.active
+    const validStatuses = Object.values(TodoStatus) as string[]
+    if (!validStatuses.includes(row.status)) {
+      throw new PersistenceError(
+        `Unrecognised status value "${row.status}" for Todo id "${row.id}". Expected one of: ${validStatuses.join(', ')}.`,
+      )
+    }
+    const status = row.status as TodoStatus
 
     return Todo.reconstitute(
       row.id,

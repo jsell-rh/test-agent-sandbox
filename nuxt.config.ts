@@ -17,7 +17,7 @@ export default defineNuxtConfig({
 
   // Runtime configuration (server-side secrets + public config)
   runtimeConfig: {
-    databasePath: process.env.DATABASE_PATH ?? './data/todos.db',
+    databasePath: process.env.DATABASE_PATH ?? './todos.db',
     public: {
       apiBase: '/api',
     },
