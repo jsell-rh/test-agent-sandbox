@@ -157,10 +157,16 @@ export function useTodos(
    * On success, removes all completed items from todos[] client-side so the UI
    * reflects the change immediately without a subsequent loadTodos() call.
    *
+   * On failure, the local todos[] is left unchanged (the server call either
+   * never reached the server or did not modify data), and the error is
+   * re-thrown so the caller can surface it to the user.
+   *
    * @returns the `deletedCount` reported by the API.
+   * @throws re-throws any network or server error from the DELETE call.
    */
   async function clearCompleted(): Promise<number> {
     const result = await deleteFn(API_TODOS_COMPLETED_PATH)
+    // Only mutate local state after a confirmed server success.
     todos.value = todos.value.filter(t => t.status !== FILTER_COMPLETED)
     return result.deletedCount
   }

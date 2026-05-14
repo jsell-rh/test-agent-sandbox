@@ -101,7 +101,7 @@ function makeTodo(overrides: Partial<TodoResource> = {}): TodoResource {
   return {
     id: 'aaaaaaaa-0000-4000-8000-000000000001',
     title: 'Test todo',
-    status: 'active',
+    status: FILTER_ACTIVE,
     createdAt: '2024-01-01T10:00:00.000Z',
     updatedAt: '2024-01-01T10:00:00.000Z',
     ...overrides,
@@ -365,6 +365,40 @@ describe('pages/index.vue — empty state', () => {
 
     // Active filter — 1 todo visible → no empty state
     expect(wrapper.find(EMPTY_STATE_SELECTOR).exists()).toBe(false)
+  })
+
+  it('empty-state message is contextual for the "all" filter', async () => {
+    fakeTodos = []
+    const wrapper = mountPage()
+    await flushPromises()
+    // "all" filter is the default; message should reflect that context
+    expect(wrapper.find(EMPTY_STATE_SELECTOR).text()).toContain('No todos yet')
+  })
+
+  it('empty-state message is contextual for the "active" filter', async () => {
+    fakeTodos = [makeTodo({ status: FILTER_COMPLETED })]
+    const wrapper = mountPage()
+    await flushPromises()
+
+    // Switch to Active — no active todos exist
+    const tabs = wrapper.findAll(FILTER_TAB_SELECTOR)
+    await tabs[1]!.trigger('click') // Active tab
+    await flushPromises()
+
+    expect(wrapper.find(EMPTY_STATE_SELECTOR).text()).toContain('No active todos')
+  })
+
+  it('empty-state message is contextual for the "completed" filter', async () => {
+    fakeTodos = [makeTodo({ status: FILTER_ACTIVE })]
+    const wrapper = mountPage()
+    await flushPromises()
+
+    // Switch to Completed — no completed todos exist
+    const tabs = wrapper.findAll(FILTER_TAB_SELECTOR)
+    await tabs[2]!.trigger('click') // Completed tab
+    await flushPromises()
+
+    expect(wrapper.find(EMPTY_STATE_SELECTOR).text()).toContain('No completed todos')
   })
 })
 

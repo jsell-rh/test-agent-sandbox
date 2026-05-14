@@ -20,24 +20,32 @@
  */
 
 import { onMounted } from 'vue'
-import { useTodos, FILTER_COMPLETED } from '~/composables/useTodos'
+import {
+  useTodos,
+  FILTER_ALL,
+  FILTER_ACTIVE,
+  FILTER_COMPLETED,
+} from '~/composables/useTodos'
+import type { FilterCriteria } from '~/composables/useTodos'
 import FooterBar from '~/components/FooterBar.vue'
 
 /**
  * Contextual empty-state messages keyed by FilterCriteria.
- * Using a plain object instead of scattered ternaries keeps the template clean
- * and avoids magic strings at the point of use.
+ *
+ * Using computed property keys (bracket notation) with the exported
+ * FilterCriteria constants ensures this map stays in sync with the
+ * constants — no magic string literals.  The Record<FilterCriteria, string>
+ * annotation makes it a compile-time error to omit any FilterCriteria value.
  */
-const EMPTY_STATE_MESSAGES: Record<string, string> = {
-  all: 'No todos yet. Add one above!',
-  active: 'No active todos.',
-  completed: 'No completed todos.',
+const EMPTY_STATE_MESSAGES: Record<FilterCriteria, string> = {
+  [FILTER_ALL]: 'No todos yet. Add one above!',
+  [FILTER_ACTIVE]: 'No active todos.',
+  [FILTER_COMPLETED]: 'No completed todos.',
 }
 
 const {
   todos,
   filter,
-  editingTodoId, // eslint-disable-line @typescript-eslint/no-unused-vars
   filteredTodos,
   counts,
   loadTodos,
@@ -47,6 +55,23 @@ const {
 onMounted(async () => {
   await loadTodos()
 })
+
+/**
+ * Handle the "Clear completed" action.
+ *
+ * Catches any rejection from clearCompleted() so it does not become an
+ * unhandled promise rejection.  Full error-state UI (inline messages,
+ * auto-dismiss) is deferred to a later task that wires a global error
+ * bus; this handler ensures the rejection is at least observed.
+ */
+async function handleClearCompleted(): Promise<void> {
+  try {
+    await clearCompleted()
+  }
+  catch (err) {
+    console.error('[todo-app] clearCompleted failed:', err)
+  }
+}
 </script>
 
 <template>
@@ -83,7 +108,7 @@ onMounted(async () => {
       :counts="counts"
       :filter="filter"
       @update:filter="filter = $event"
-      @clear-completed="clearCompleted()"
+      @clear-completed="handleClearCompleted()"
     />
   </div>
 </template>
