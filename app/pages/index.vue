@@ -9,11 +9,13 @@
  *   filter         — FilterCriteria, default 'all'; applied client-side
  *   editingTodoId  — TodoId being edited, default null
  *
- * No business logic lives here. State transitions will be triggered by
- * child component events (wired in subsequent tasks).
+ * Error handling:
+ *   Errors from child components are stored in `errorMessage`. Display is
+ *   wired by the ui-accessibility-errors task; this task persists the value
+ *   so subsequent tasks can consume it.
  */
 
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useTodos, FILTER_COMPLETED } from '~/composables/useTodos'
 
 const {
@@ -25,7 +27,15 @@ const {
   filteredTodos,
   counts,       // eslint-disable-line @typescript-eslint/no-unused-vars
   loadTodos,
+  createTodo,
 } = useTodos()
+
+/** Holds the latest API error message; consumed by the error display (future task). */
+const errorMessage = ref<string | null>(null)
+
+function handleCreateError(message: string): void {
+  errorMessage.value = message
+}
 
 onMounted(async () => {
   await loadTodos()
@@ -35,6 +45,11 @@ onMounted(async () => {
 <template>
   <div class="todo-app">
     <AppHeader />
+
+    <NewTodoInput
+      :create-todo="createTodo"
+      @error="handleCreateError"
+    />
 
     <section class="main" :aria-hidden="todos.length === 0 ? 'true' : undefined">
       <ol class="todo-list" data-testid="todo-list" aria-label="Todo items">
