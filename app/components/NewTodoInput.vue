@@ -17,6 +17,17 @@
 import { ref } from 'vue'
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const KEY_ENTER = 'Enter'
+const KEY_ESCAPE = 'Escape'
+const FALLBACK_CREATE_ERROR = 'Failed to create todo'
+
+/** Maximum title length — mirrors the server-side TodoTitle invariant. */
+const MAX_TITLE_LENGTH = 500
+
+// ---------------------------------------------------------------------------
 // Props & emits
 // ---------------------------------------------------------------------------
 
@@ -49,7 +60,7 @@ async function handleEnter(): Promise<void> {
     inputTitle.value = ''
   } catch (err) {
     // Leave input unchanged so the user can retry or correct the title.
-    const message = err instanceof Error ? err.message : 'Failed to create todo'
+    const message = err instanceof Error ? err.message : FALLBACK_CREATE_ERROR
     emit('error', message)
   }
 }
@@ -58,10 +69,10 @@ function handleEscape(): void {
   inputTitle.value = ''
 }
 
-function handleKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Enter') {
-    handleEnter()
-  } else if (event.key === 'Escape') {
+async function handleKeydown(event: KeyboardEvent): Promise<void> {
+  if (event.key === KEY_ENTER) {
+    await handleEnter()
+  } else if (event.key === KEY_ESCAPE) {
     handleEscape()
   }
 }
@@ -75,6 +86,7 @@ function handleKeydown(event: KeyboardEvent): void {
     data-testid="new-todo-input"
     placeholder="What needs to be done?"
     aria-label="New todo title"
+    :maxlength="MAX_TITLE_LENGTH"
     @keydown="handleKeydown"
   />
 </template>

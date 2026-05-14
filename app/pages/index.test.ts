@@ -223,10 +223,32 @@ describe('pages/index.vue — NewTodoInput wiring', () => {
     expect(wrapper.find(NEW_TODO_INPUT_STUB).exists()).toBe(true)
   })
 
-  it('passes createTodo from useTodos as a prop to NewTodoInput', () => {
+  it('passes the createTodo action from useTodos to NewTodoInput', async () => {
     const wrapper = mountPage()
-    // The stub records the prop; verify the page supplies a function.
     const newTodoStub = wrapper.findComponent({ name: 'NewTodoInput' })
-    expect(typeof newTodoStub.props('createTodo')).toBe('function')
+
+    // Call the prop directly — if it's the correct createTodo from useTodos,
+    // it will invoke the spy registered in the mock.
+    const createTodoProp = newTodoStub.props('createTodo') as (title: string) => Promise<void>
+    await createTodoProp('Test title')
+
+    // Retrieve the spy from setupState to confirm it was invoked.
+    const { createTodo } = wrapper.getCurrentComponent().setupState as {
+      createTodo: ReturnType<typeof vi.fn>
+    }
+    expect(createTodo).toHaveBeenCalledOnce()
+    expect(createTodo).toHaveBeenCalledWith('Test title')
+  })
+
+  it('handles the error event from NewTodoInput without crashing', async () => {
+    const wrapper = mountPage()
+    const newTodoStub = wrapper.findComponent({ name: 'NewTodoInput' })
+
+    // Simulate NewTodoInput emitting an error event.
+    await newTodoStub.vm.$emit('error', 'Something went wrong')
+    await flushPromises()
+
+    // The page must not crash; the error is stored for the display task.
+    expect(wrapper.exists()).toBe(true)
   })
 })
