@@ -9,22 +9,39 @@
  *   filter         — FilterCriteria, default 'all'; applied client-side
  *   editingTodoId  — TodoId being edited, default null
  *
- * No business logic lives here. State transitions will be triggered by
- * child component events (wired in subsequent tasks).
+ * This page wires together:
+ *   - Header (AppHeader)
+ *   - Todo list (filtered view, rendered from filteredTodos)
+ *   - Footer bar (FooterBar; visible only when todos[] is non-empty)
+ *     - Items-left count
+ *     - FilterTabs (canonical filter set — client-side only)
+ *     - Clear completed button (DELETE /api/todos?status=completed)
+ *   - Empty state message (when filteredTodos is empty)
  */
 
 import { onMounted } from 'vue'
 import { useTodos, FILTER_COMPLETED } from '~/composables/useTodos'
+import FooterBar from '~/components/FooterBar.vue'
+
+/**
+ * Contextual empty-state messages keyed by FilterCriteria.
+ * Using a plain object instead of scattered ternaries keeps the template clean
+ * and avoids magic strings at the point of use.
+ */
+const EMPTY_STATE_MESSAGES: Record<string, string> = {
+  all: 'No todos yet. Add one above!',
+  active: 'No active todos.',
+  completed: 'No completed todos.',
+}
 
 const {
   todos,
-  // filter and editingTodoId are part of the state machine contract and will be
-  // consumed by child components in subsequent tasks.
-  filter,       // eslint-disable-line @typescript-eslint/no-unused-vars
+  filter,
   editingTodoId, // eslint-disable-line @typescript-eslint/no-unused-vars
   filteredTodos,
-  counts,       // eslint-disable-line @typescript-eslint/no-unused-vars
+  counts,
   loadTodos,
+  clearCompleted,
 } = useTodos()
 
 onMounted(async () => {
@@ -48,7 +65,26 @@ onMounted(async () => {
           {{ todo.title }}
         </li>
       </ol>
+
+      <!-- Empty state: shown when the filtered view is empty -->
+      <p
+        v-if="filteredTodos.length === 0"
+        class="empty-state"
+        data-testid="empty-state"
+        aria-live="polite"
+      >
+        {{ EMPTY_STATE_MESSAGES[filter] }}
+      </p>
     </section>
+
+    <!-- Footer: visible only when at least one todo exists -->
+    <FooterBar
+      v-if="todos.length > 0"
+      :counts="counts"
+      :filter="filter"
+      @update:filter="filter = $event"
+      @clear-completed="clearCompleted()"
+    />
   </div>
 </template>
 
@@ -76,5 +112,12 @@ onMounted(async () => {
 .todo-item.completed {
   text-decoration: line-through;
   color: #d9d9d9;
+}
+
+.empty-state {
+  text-align: center;
+  color: #ccc;
+  padding: 2rem 1rem;
+  font-style: italic;
 }
 </style>
