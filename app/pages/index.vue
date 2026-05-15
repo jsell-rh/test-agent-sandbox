@@ -4,7 +4,7 @@
  *
  * Integration point for the UI state machine (specs/interface.spec.md).
  *
- * State:
+ * State (via useTodos):
  *   todos[]        — source of truth; loaded from API on mount (GET /api/todos)
  *   filter         — FilterCriteria, default 'all'; applied client-side
  *   editingTodoId  — TodoId being edited, default null
@@ -12,12 +12,15 @@
  * This page wires together:
  *   - Header (AppHeader)
  *   - NewTodoInput (create new todos via POST /api/todos)
- *   - Todo list (filtered view, rendered from filteredTodos)
+ *   - Todo list (TodoItem components; filtered view from filteredTodos)
  *   - Footer bar (FooterBar; visible only when todos[] is non-empty)
  *     - Items-left count
  *     - FilterTabs (canonical filter set — client-side only)
  *     - Clear completed button (DELETE /api/todos?status=completed)
  *   - Empty state message (when filteredTodos is empty)
+ *
+ * All business/API logic is delegated to the useTodos composable.
+ * This component is purely responsible for rendering and wiring events.
  *
  * Error handling:
  *   Errors from child components are stored in `errorMessage`. Display is
@@ -34,6 +37,7 @@ import {
 } from '~/composables/useTodos'
 import type { FilterCriteria } from '~/composables/useTodos'
 import FooterBar from '~/components/FooterBar.vue'
+import TodoItem from '~/components/TodoItem.vue'
 
 /**
  * Contextual empty-state messages keyed by FilterCriteria.
@@ -51,15 +55,18 @@ const EMPTY_STATE_MESSAGES: Record<FilterCriteria, string> = {
 
 const {
   todos,
-  // editingTodoId is part of the state machine contract and will be
-  // consumed by child components in subsequent tasks.
-  editingTodoId, // eslint-disable-line @typescript-eslint/no-unused-vars
   filter,
+  editingTodoId,
   filteredTodos,
   counts,
   loadTodos,
   createTodo,
   clearCompleted,
+  toggleTodo,
+  deleteTodo,
+  updateTodoTitle,
+  startEditing,
+  cancelEditing,
 } = useTodos()
 
 /** Holds the latest API error message; consumed by the error display (future task). */
@@ -72,6 +79,28 @@ function handleCreateError(message: string): void {
 onMounted(async () => {
   await loadTodos()
 })
+
+// ---------------------------------------------------------------------------
+// TodoItem event handlers
+// ---------------------------------------------------------------------------
+
+/**
+ * Handle edit-submit from a TodoItem.
+ *
+ * An empty string means the user cleared the title — delete the todo.
+ * A non-empty string means the user changed the title — update it.
+ *
+ * Spec § UI State Machine:
+ *   "User submits empty title in edit field → DELETE /api/todos/:id"
+ */
+async function handleEditSubmit(id: string, newTitle: string): Promise<void> {
+  if (newTitle === '') {
+    await deleteTodo(id)
+  }
+  else {
+    await updateTodoTitle(id, newTitle)
+  }
+}
 
 /**
  * Handle the "Clear completed" action.
@@ -102,15 +131,17 @@ async function handleClearCompleted(): Promise<void> {
 
     <section class="main" :aria-hidden="todos.length === 0 ? 'true' : undefined">
       <ol class="todo-list" data-testid="todo-list" aria-label="Todo items">
-        <li
+        <TodoItem
           v-for="todo in filteredTodos"
           :key="todo.id"
-          class="todo-item"
-          data-testid="todo-item"
-          :class="{ [FILTER_COMPLETED]: todo.status === FILTER_COMPLETED }"
-        >
-          {{ todo.title }}
-        </li>
+          :todo="todo"
+          :is-editing="editingTodoId === todo.id"
+          @toggle="toggleTodo(todo.id)"
+          @delete="deleteTodo(todo.id)"
+          @edit-start="startEditing(todo.id)"
+          @edit-submit="handleEditSubmit(todo.id, $event)"
+          @edit-cancel="cancelEditing()"
+        />
       </ol>
 
       <!-- Empty state: shown when the filtered view is empty -->
@@ -149,16 +180,6 @@ async function handleClearCompleted(): Promise<void> {
   list-style: none;
   padding: 0;
   margin: 0;
-}
-
-.todo-item {
-  padding: 1rem;
-  border-bottom: 1px solid #ededed;
-}
-
-.todo-item.completed {
-  text-decoration: line-through;
-  color: #d9d9d9;
 }
 
 .empty-state {

@@ -8,9 +8,13 @@
  *   - counts computed reflects the full todos[], not the filtered view
  *   - createTodo() prepends new todo and delegates to POST /api/todos
  *   - clearCompleted() bulk-deletes completed todos via DELETE /api/todos?status=completed
+ *   - toggleTodo() optimistic update + rollback on API error
+ *   - deleteTodo() optimistic removal + rollback on API error
+ *   - updateTodoTitle() patches title and clears editingTodoId
+ *   - startEditing() / cancelEditing() manage editingTodoId
  *
  * Strategy:
- *   Fake fetch/create/delete functions are injected via optional parameters so tests
+ *   A fake apiFetch function is injected via the optional parameter so tests
  *   exercise real behaviour without touching the network or Nuxt globals.
  */
 
@@ -22,8 +26,9 @@ import {
   FILTER_COMPLETED,
   API_TODOS_PATH,
   API_TODOS_COMPLETED_PATH,
+  apiTodoPath,
 } from './useTodos'
-import type { TodoResource, TodoListResponse, CreateFn, ClearCompletedResponse } from './useTodos'
+import type { TodoResource, TodoListResponse, ApiFetchFn, ClearCompletedResponse } from './useTodos'
 
 // ---------------------------------------------------------------------------
 // Fake helpers
@@ -49,8 +54,23 @@ function fakeResponse(todos: TodoResource[]): TodoListResponse {
   }
 }
 
-/** Returns a fake fetch that resolves with the given response. */
-function fakeFetch(response: TodoListResponse) {
+/**
+ * Build a fake ApiFetchFn from a sequence of per-call resolvers.
+ *
+ * Each call to the returned function pops the next resolver off the queue.
+ * Unconfigured calls throw to surface unexpected API interactions in tests.
+ */
+function makeApiFetch(calls: Array<() => Promise<unknown>>): ApiFetchFn {
+  const queue = [...calls]
+  return vi.fn((_url: string, _opts?: unknown) => {
+    const next = queue.shift()
+    if (!next) throw new Error('Unexpected apiFetch call — add more resolvers to makeApiFetch')
+    return next() as Promise<never>
+  })
+}
+
+/** Builds a fake that always resolves with `response` for every call. */
+function makeSimpleFetch(response: unknown): ApiFetchFn {
   return vi.fn().mockResolvedValue(response)
 }
 
@@ -60,27 +80,27 @@ function fakeFetch(response: TodoListResponse) {
 
 describe('useTodos — initial state', () => {
   it('todos[] starts empty', () => {
-    const { todos } = useTodos(fakeFetch(fakeResponse([])))
+    const { todos } = useTodos(makeSimpleFetch(fakeResponse([])))
     expect(todos.value).toEqual([])
   })
 
   it('filter starts as "all"', () => {
-    const { filter } = useTodos(fakeFetch(fakeResponse([])))
+    const { filter } = useTodos(makeSimpleFetch(fakeResponse([])))
     expect(filter.value).toBe(FILTER_ALL)
   })
 
   it('editingTodoId starts as null', () => {
-    const { editingTodoId } = useTodos(fakeFetch(fakeResponse([])))
+    const { editingTodoId } = useTodos(makeSimpleFetch(fakeResponse([])))
     expect(editingTodoId.value).toBeNull()
   })
 
   it('filteredTodos starts empty', () => {
-    const { filteredTodos } = useTodos(fakeFetch(fakeResponse([])))
+    const { filteredTodos } = useTodos(makeSimpleFetch(fakeResponse([])))
     expect(filteredTodos.value).toEqual([])
   })
 
   it('counts start at zero', () => {
-    const { counts } = useTodos(fakeFetch(fakeResponse([])))
+    const { counts } = useTodos(makeSimpleFetch(fakeResponse([])))
     expect(counts.value).toEqual({ all: 0, active: 0, completed: 0 })
   })
 })
@@ -92,7 +112,7 @@ describe('useTodos — initial state', () => {
 describe('useTodos — loadTodos()', () => {
   it('populates todos[] with the API response', async () => {
     const todo = makeTodo({ title: 'Buy milk' })
-    const fetch = fakeFetch(fakeResponse([todo]))
+    const fetch = makeSimpleFetch(fakeResponse([todo]))
     const { todos, loadTodos } = useTodos(fetch)
 
     await loadTodos()
@@ -102,7 +122,7 @@ describe('useTodos — loadTodos()', () => {
   })
 
   it('calls the API endpoint', async () => {
-    const fetch = fakeFetch(fakeResponse([]))
+    const fetch = makeSimpleFetch(fakeResponse([]))
     const { loadTodos } = useTodos(fetch)
 
     await loadTodos()
@@ -115,9 +135,10 @@ describe('useTodos — loadTodos()', () => {
     const first = makeTodo({ id: '00000000-0000-4000-8000-000000000001', title: 'First' })
     const second = makeTodo({ id: '00000000-0000-4000-8000-000000000002', title: 'Second' })
 
-    const fetch = vi.fn()
-      .mockResolvedValueOnce(fakeResponse([first]))
-      .mockResolvedValueOnce(fakeResponse([second]))
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([first])),
+      () => Promise.resolve(fakeResponse([second])),
+    ])
 
     const { todos, loadTodos } = useTodos(fetch)
 
@@ -142,7 +163,7 @@ describe('useTodos — loadTodos()', () => {
       createdAt: '2024-01-01T10:00:00.000Z',
     })
     // API returns newest first
-    const fetch = fakeFetch(fakeResponse([newer, older]))
+    const fetch = makeSimpleFetch(fakeResponse([newer, older]))
     const { todos, loadTodos } = useTodos(fetch)
 
     await loadTodos()
@@ -168,7 +189,7 @@ describe('useTodos — filteredTodos computed', () => {
       title: 'Done task',
       status: FILTER_COMPLETED,
     })
-    const fetch = fakeFetch(fakeResponse([active, completed]))
+    const fetch = makeSimpleFetch(fakeResponse([active, completed]))
     const state = useTodos(fetch)
     await state.loadTodos()
     return state
@@ -195,7 +216,7 @@ describe('useTodos — filteredTodos computed', () => {
   })
 
   it('switching filter requires no additional fetch call', async () => {
-    const fetch = fakeFetch(
+    const fetch = makeSimpleFetch(
       fakeResponse([
         makeTodo({ status: FILTER_ACTIVE }),
         makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED }),
@@ -231,7 +252,7 @@ describe('useTodos — counts computed', () => {
       id: '00000000-0000-4000-8000-000000000002',
       status: FILTER_COMPLETED,
     })
-    const fetch = fakeFetch(fakeResponse([active, completed]))
+    const fetch = makeSimpleFetch(fakeResponse([active, completed]))
     const { filter, counts, loadTodos } = useTodos(fetch)
     await loadTodos()
 
@@ -248,21 +269,18 @@ describe('useTodos — counts computed', () => {
 // createTodo — POST /api/todos
 // ---------------------------------------------------------------------------
 
-/** Fake CreateFn helper — resolves with the given TodoResource. */
-function fakeCreate(todo: TodoResource): CreateFn {
-  return vi.fn().mockResolvedValue(todo)
-}
-
 describe('useTodos — createTodo()', () => {
-  it('calls the create function with API_TODOS_PATH and the title', async () => {
+  it('sends POST to API_TODOS_PATH with the title', async () => {
     const newTodo = makeTodo({ title: 'New task' })
-    const createFn = fakeCreate(newTodo)
-    const { createTodo } = useTodos(fakeFetch(fakeResponse([])), createFn)
+    const fetch = makeApiFetch([
+      () => Promise.resolve(newTodo),
+    ])
+    const { createTodo } = useTodos(fetch)
 
     await createTodo('New task')
 
-    expect(createFn).toHaveBeenCalledOnce()
-    expect(createFn).toHaveBeenCalledWith(API_TODOS_PATH, { title: 'New task' })
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(fetch).toHaveBeenCalledWith(API_TODOS_PATH, { method: 'POST', body: { title: 'New task' } })
   })
 
   it('prepends the returned todo to todos[] (newest first)', async () => {
@@ -277,10 +295,11 @@ describe('useTodos — createTodo()', () => {
       createdAt: '2024-01-01T10:00:00.000Z',
     })
 
-    const { todos, loadTodos, createTodo } = useTodos(
-      fakeFetch(fakeResponse([existing])),
-      fakeCreate(created),
-    )
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([existing])),  // loadTodos
+      () => Promise.resolve(created),                   // createTodo POST
+    ])
+    const { todos, loadTodos, createTodo } = useTodos(fetch)
     await loadTodos()
     await createTodo('New task')
 
@@ -291,10 +310,11 @@ describe('useTodos — createTodo()', () => {
 
   it('updates counts immediately after creating', async () => {
     const created = makeTodo({ id: '00000000-0000-4000-8000-000000000002', title: 'New' })
-    const { counts, loadTodos, createTodo } = useTodos(
-      fakeFetch(fakeResponse([])),
-      fakeCreate(created),
-    )
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([])),  // loadTodos
+      () => Promise.resolve(created),           // createTodo POST
+    ])
+    const { counts, loadTodos, createTodo } = useTodos(fetch)
     await loadTodos()
     expect(counts.value.all).toBe(0)
 
@@ -305,12 +325,12 @@ describe('useTodos — createTodo()', () => {
 
   it('leaves todos[] unchanged when the API call fails', async () => {
     const existing = makeTodo({ title: 'Existing' })
-    const createFn: CreateFn = vi.fn().mockRejectedValue(new Error('Internal Server Error'))
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([existing])),                  // loadTodos
+      () => Promise.reject(new Error('Internal Server Error')),         // createTodo fails
+    ])
 
-    const { todos, loadTodos, createTodo } = useTodos(
-      fakeFetch(fakeResponse([existing])),
-      createFn,
-    )
+    const { todos, loadTodos, createTodo } = useTodos(fetch)
     await loadTodos()
 
     await expect(createTodo('New task')).rejects.toThrow('Internal Server Error')
@@ -319,8 +339,10 @@ describe('useTodos — createTodo()', () => {
   })
 
   it('re-throws the error so callers can handle it', async () => {
-    const createFn: CreateFn = vi.fn().mockRejectedValue(new Error('Server Error'))
-    const { createTodo } = useTodos(fakeFetch(fakeResponse([])), createFn)
+    const fetch = makeApiFetch([
+      () => Promise.reject(new Error('Server Error')),
+    ])
+    const { createTodo } = useTodos(fetch)
 
     await expect(createTodo('Anything')).rejects.toThrow('Server Error')
   })
@@ -330,32 +352,30 @@ describe('useTodos — createTodo()', () => {
 // clearCompleted — bulk delete action
 // ---------------------------------------------------------------------------
 
-/** Fake delete function that resolves with the given response. */
-function fakeDeleteFn(response: ClearCompletedResponse) {
-  return vi.fn().mockResolvedValue(response)
-}
-
 describe('useTodos — clearCompleted()', () => {
   it('calls DELETE on API_TODOS_COMPLETED_PATH', async () => {
     const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE })
     const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED })
-    const fetch = fakeFetch(fakeResponse([active, completed]))
-    const deleteFn = fakeDeleteFn({ deletedCount: 1 })
-    const { loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([active, completed])),  // loadTodos
+      () => Promise.resolve({ deletedCount: 1 } satisfies ClearCompletedResponse),
+    ])
+    const { loadTodos, clearCompleted } = useTodos(fetch)
     await loadTodos()
 
     await clearCompleted()
 
-    expect(deleteFn).toHaveBeenCalledOnce()
-    expect(deleteFn).toHaveBeenCalledWith(API_TODOS_COMPLETED_PATH)
+    expect(fetch).toHaveBeenNthCalledWith(2, API_TODOS_COMPLETED_PATH, { method: 'DELETE' })
   })
 
   it('removes all completed todos from todos[]', async () => {
     const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE })
     const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED })
-    const fetch = fakeFetch(fakeResponse([active, completed]))
-    const deleteFn = fakeDeleteFn({ deletedCount: 1 })
-    const { todos, loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([active, completed])),
+      () => Promise.resolve({ deletedCount: 1 } satisfies ClearCompletedResponse),
+    ])
+    const { todos, loadTodos, clearCompleted } = useTodos(fetch)
     await loadTodos()
 
     expect(todos.value).toHaveLength(2)
@@ -370,9 +390,11 @@ describe('useTodos — clearCompleted()', () => {
     const active1 = makeTodo({ id: '00000000-0000-4000-8000-000000000001', title: 'Keep me', status: FILTER_ACTIVE })
     const active2 = makeTodo({ id: '00000000-0000-4000-8000-000000000002', title: 'Keep me too', status: FILTER_ACTIVE })
     const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000003', status: FILTER_COMPLETED })
-    const fetch = fakeFetch(fakeResponse([active1, active2, completed]))
-    const deleteFn = fakeDeleteFn({ deletedCount: 1 })
-    const { todos, loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([active1, active2, completed])),
+      () => Promise.resolve({ deletedCount: 1 } satisfies ClearCompletedResponse),
+    ])
+    const { todos, loadTodos, clearCompleted } = useTodos(fetch)
     await loadTodos()
 
     await clearCompleted()
@@ -384,9 +406,11 @@ describe('useTodos — clearCompleted()', () => {
   it('returns the deletedCount from the API response', async () => {
     const c1 = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_COMPLETED })
     const c2 = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED })
-    const fetch = fakeFetch(fakeResponse([c1, c2]))
-    const deleteFn = fakeDeleteFn({ deletedCount: 2 })
-    const { loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([c1, c2])),
+      () => Promise.resolve({ deletedCount: 2 } satisfies ClearCompletedResponse),
+    ])
+    const { loadTodos, clearCompleted } = useTodos(fetch)
     await loadTodos()
 
     const count = await clearCompleted()
@@ -396,9 +420,11 @@ describe('useTodos — clearCompleted()', () => {
 
   it('when no completed todos exist, todos[] is unchanged and deletedCount is 0', async () => {
     const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE })
-    const fetch = fakeFetch(fakeResponse([active]))
-    const deleteFn = fakeDeleteFn({ deletedCount: 0 })
-    const { todos, loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([active])),
+      () => Promise.resolve({ deletedCount: 0 } satisfies ClearCompletedResponse),
+    ])
+    const { todos, loadTodos, clearCompleted } = useTodos(fetch)
     await loadTodos()
 
     const count = await clearCompleted()
@@ -410,9 +436,11 @@ describe('useTodos — clearCompleted()', () => {
   it('re-throws on DELETE failure and leaves todos[] unchanged', async () => {
     const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE })
     const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED })
-    const fetch = fakeFetch(fakeResponse([active, completed]))
-    const deleteFn = vi.fn().mockRejectedValue(new Error('Network error'))
-    const { todos, loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([active, completed])),
+      () => Promise.reject(new Error('Network error')),
+    ])
+    const { todos, loadTodos, clearCompleted } = useTodos(fetch)
     await loadTodos()
 
     await expect(clearCompleted()).rejects.toThrow('Network error')
@@ -424,9 +452,11 @@ describe('useTodos — clearCompleted()', () => {
   it('counts computed updates reactively after clearCompleted — completed drops to 0', async () => {
     const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE })
     const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED })
-    const fetch = fakeFetch(fakeResponse([active, completed]))
-    const deleteFn = fakeDeleteFn({ deletedCount: 1 })
-    const { counts, loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([active, completed])),
+      () => Promise.resolve({ deletedCount: 1 } satisfies ClearCompletedResponse),
+    ])
+    const { counts, loadTodos, clearCompleted } = useTodos(fetch)
     await loadTodos()
 
     expect(counts.value).toEqual({ all: 2, active: 1, completed: 1 })
@@ -436,5 +466,301 @@ describe('useTodos — clearCompleted()', () => {
     // The computed must reflect the post-clear state immediately (no extra loadTodos call).
     // This is what drives the "Clear completed" button disappearing in the UI.
     expect(counts.value).toEqual({ all: 1, active: 1, completed: 0 })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// toggleTodo — optimistic update + rollback
+// ---------------------------------------------------------------------------
+
+describe('useTodos — toggleTodo()', () => {
+  const ACTIVE_ID = '00000000-0000-4000-8000-000000000001'
+  const COMPLETED_ID = '00000000-0000-4000-8000-000000000002'
+
+  /**
+   * Set up a pair of todos in the composable and configure the PATCH response
+   * for a specific toggle operation.
+   */
+  async function setupToggle(toggleId: string, patchResponse: TodoResource) {
+    const activeTodo = makeTodo({ id: ACTIVE_ID, status: 'active', title: 'Active' })
+    const completedTodo = makeTodo({ id: COMPLETED_ID, status: 'completed', title: 'Done' })
+
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([activeTodo, completedTodo])),
+      () => Promise.resolve(patchResponse),
+    ])
+
+    const state = useTodos(fetch)
+    await state.loadTodos()
+    return { ...state, fetch, toggleId }
+  }
+
+  it('optimistically flips status before API responds', async () => {
+    const activeTodo = makeTodo({ id: ACTIVE_ID, status: 'active' })
+    // Never-resolving PATCH so we can inspect mid-flight state
+    let resolveToggle!: (v: TodoResource) => void
+    const patchPromise = new Promise<TodoResource>(r => { resolveToggle = r })
+
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([activeTodo])),
+      () => patchPromise,
+    ])
+    const { todos, loadTodos, toggleTodo } = useTodos(fetch)
+    await loadTodos()
+
+    const togglePromise = toggleTodo(ACTIVE_ID)
+
+    // Optimistic: status is flipped before API responds
+    expect(todos.value[0]!.status).toBe('completed')
+
+    resolveToggle({ ...activeTodo, status: 'completed' })
+    await togglePromise
+  })
+
+  it('sends PATCH to the correct endpoint with toggled status', async () => {
+    const activeTodo = makeTodo({ id: ACTIVE_ID, status: 'active' })
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([activeTodo])),
+      () => Promise.resolve({ ...activeTodo, status: 'completed' as const }),
+    ])
+    const { loadTodos, toggleTodo } = useTodos(fetch)
+    await loadTodos()
+    await toggleTodo(ACTIVE_ID)
+
+    expect(fetch).toHaveBeenNthCalledWith(2, apiTodoPath(ACTIVE_ID), {
+      method: 'PATCH',
+      body: { status: 'completed' },
+    })
+  })
+
+  it('active -> completed transition', async () => {
+    const activeTodo = makeTodo({ id: ACTIVE_ID, status: 'active', title: 'Active' })
+    const patchResponse = { ...activeTodo, status: 'completed' as const }
+    const { todos, toggleTodo } = await setupToggle(ACTIVE_ID, patchResponse)
+    await toggleTodo(ACTIVE_ID)
+    const toggled = todos.value.find(t => t.id === ACTIVE_ID)!
+    expect(toggled.status).toBe('completed')
+  })
+
+  it('completed -> active transition', async () => {
+    const completedTodo = makeTodo({ id: COMPLETED_ID, status: 'completed', title: 'Done' })
+    const patchResponse = { ...completedTodo, status: 'active' as const }
+    const { todos, toggleTodo } = await setupToggle(COMPLETED_ID, patchResponse)
+    await toggleTodo(COMPLETED_ID)
+    const toggled = todos.value.find(t => t.id === COMPLETED_ID)!
+    expect(toggled.status).toBe('active')
+  })
+
+  it('rolls back status on API error (500)', async () => {
+    const activeTodo = makeTodo({ id: ACTIVE_ID, status: 'active' })
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([activeTodo])),
+      () => Promise.reject(new Error('Server error')),
+    ])
+    const { todos, loadTodos, toggleTodo } = useTodos(fetch)
+    await loadTodos()
+
+    await expect(toggleTodo(ACTIVE_ID)).rejects.toThrow('Server error')
+
+    // Status must be rolled back to the original value
+    expect(todos.value[0]!.status).toBe('active')
+  })
+
+  it('is a no-op for an unknown id', async () => {
+    const todo = makeTodo({ id: ACTIVE_ID })
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([todo])),
+    ])
+    const { todos, loadTodos, toggleTodo } = useTodos(fetch)
+    await loadTodos()
+
+    // Should resolve without throwing and make no API call
+    await toggleTodo('unknown-id')
+    expect(todos.value[0]!.status).toBe('active')
+    expect(fetch).toHaveBeenCalledOnce() // only the initial loadTodos
+  })
+})
+
+// ---------------------------------------------------------------------------
+// deleteTodo — optimistic removal + rollback
+// ---------------------------------------------------------------------------
+
+describe('useTodos — deleteTodo()', () => {
+  const ID_A = '00000000-0000-4000-8000-000000000001'
+  const ID_B = '00000000-0000-4000-8000-000000000002'
+
+  it('optimistically removes the todo before API responds', async () => {
+    const todo = makeTodo({ id: ID_A })
+    let resolveDelete!: () => void
+    const deletePromise = new Promise<void>(r => { resolveDelete = r })
+
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([todo])),
+      () => deletePromise,
+    ])
+    const { todos, loadTodos, deleteTodo } = useTodos(fetch)
+    await loadTodos()
+
+    const deleteInFlight = deleteTodo(ID_A)
+    expect(todos.value).toHaveLength(0)
+
+    resolveDelete()
+    await deleteInFlight
+  })
+
+  it('sends DELETE to the correct endpoint', async () => {
+    const todo = makeTodo({ id: ID_A })
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([todo])),
+      () => Promise.resolve(undefined),
+    ])
+    const { loadTodos, deleteTodo } = useTodos(fetch)
+    await loadTodos()
+    await deleteTodo(ID_A)
+
+    expect(fetch).toHaveBeenNthCalledWith(2, apiTodoPath(ID_A), { method: 'DELETE' })
+  })
+
+  it('removes the correct todo when multiple exist', async () => {
+    const a = makeTodo({ id: ID_A, title: 'A' })
+    const b = makeTodo({ id: ID_B, title: 'B' })
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([a, b])),
+      () => Promise.resolve(undefined),
+    ])
+    const { todos, loadTodos, deleteTodo } = useTodos(fetch)
+    await loadTodos()
+    await deleteTodo(ID_A)
+
+    expect(todos.value).toHaveLength(1)
+    expect(todos.value[0]!.id).toBe(ID_B)
+  })
+
+  it('rolls back removal on API error', async () => {
+    const todo = makeTodo({ id: ID_A })
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([todo])),
+      () => Promise.reject(new Error('Network error')),
+    ])
+    const { todos, loadTodos, deleteTodo } = useTodos(fetch)
+    await loadTodos()
+
+    await expect(deleteTodo(ID_A)).rejects.toThrow('Network error')
+
+    expect(todos.value).toHaveLength(1)
+    expect(todos.value[0]!.id).toBe(ID_A)
+  })
+
+  it('clears editingTodoId if the deleted todo was being edited', async () => {
+    const todo = makeTodo({ id: ID_A })
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([todo])),
+      () => Promise.resolve(undefined),
+    ])
+    const { editingTodoId, loadTodos, deleteTodo, startEditing } = useTodos(fetch)
+    await loadTodos()
+    startEditing(ID_A)
+    expect(editingTodoId.value).toBe(ID_A)
+
+    await deleteTodo(ID_A)
+    expect(editingTodoId.value).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// updateTodoTitle
+// ---------------------------------------------------------------------------
+
+describe('useTodos — updateTodoTitle()', () => {
+  const TODO_ID = '00000000-0000-4000-8000-000000000001'
+
+  it('updates the title in todos[] on success', async () => {
+    const todo = makeTodo({ id: TODO_ID, title: 'Old title' })
+    const updated = { ...todo, title: 'New title', updatedAt: '2024-01-02T10:00:00.000Z' }
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([todo])),
+      () => Promise.resolve(updated),
+    ])
+    const { todos, loadTodos, updateTodoTitle } = useTodos(fetch)
+    await loadTodos()
+    await updateTodoTitle(TODO_ID, 'New title')
+
+    expect(todos.value[0]!.title).toBe('New title')
+  })
+
+  it('sends PATCH to the correct endpoint with new title', async () => {
+    const todo = makeTodo({ id: TODO_ID, title: 'Old' })
+    const updated = { ...todo, title: 'New' }
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([todo])),
+      () => Promise.resolve(updated),
+    ])
+    const { loadTodos, updateTodoTitle } = useTodos(fetch)
+    await loadTodos()
+    await updateTodoTitle(TODO_ID, 'New')
+
+    expect(fetch).toHaveBeenNthCalledWith(2, apiTodoPath(TODO_ID), {
+      method: 'PATCH',
+      body: { title: 'New' },
+    })
+  })
+
+  it('clears editingTodoId on success', async () => {
+    const todo = makeTodo({ id: TODO_ID, title: 'Old' })
+    const updated = { ...todo, title: 'New' }
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([todo])),
+      () => Promise.resolve(updated),
+    ])
+    const { editingTodoId, loadTodos, updateTodoTitle, startEditing } = useTodos(fetch)
+    await loadTodos()
+    startEditing(TODO_ID)
+    expect(editingTodoId.value).toBe(TODO_ID)
+
+    await updateTodoTitle(TODO_ID, 'New')
+    expect(editingTodoId.value).toBeNull()
+  })
+
+  it('propagates API errors (caller handles error display)', async () => {
+    const todo = makeTodo({ id: TODO_ID, title: 'Old' })
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([todo])),
+      () => Promise.reject(new Error('Validation error')),
+    ])
+    const { loadTodos, updateTodoTitle } = useTodos(fetch)
+    await loadTodos()
+
+    await expect(updateTodoTitle(TODO_ID, '')).rejects.toThrow('Validation error')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// startEditing / cancelEditing
+// ---------------------------------------------------------------------------
+
+describe('useTodos — editing state', () => {
+  const TODO_ID = '00000000-0000-4000-8000-000000000001'
+
+  it('startEditing sets editingTodoId', () => {
+    const { editingTodoId, startEditing } = useTodos(makeSimpleFetch(fakeResponse([])))
+    startEditing(TODO_ID)
+    expect(editingTodoId.value).toBe(TODO_ID)
+  })
+
+  it('cancelEditing clears editingTodoId', () => {
+    const { editingTodoId, startEditing, cancelEditing } = useTodos(
+      makeSimpleFetch(fakeResponse([])),
+    )
+    startEditing(TODO_ID)
+    cancelEditing()
+    expect(editingTodoId.value).toBeNull()
+  })
+
+  it('startEditing on a different id replaces editingTodoId (only one edit at a time)', () => {
+    const OTHER_ID = '00000000-0000-4000-8000-000000000002'
+    const { editingTodoId, startEditing } = useTodos(makeSimpleFetch(fakeResponse([])))
+    startEditing(TODO_ID)
+    startEditing(OTHER_ID)
+    expect(editingTodoId.value).toBe(OTHER_ID)
   })
 })
