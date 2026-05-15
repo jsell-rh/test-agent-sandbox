@@ -159,15 +159,19 @@ export class SqliteTodoRepository implements TodoRepository {
    */
   counts(): { all: number; active: number; completed: number } {
     try {
+      // Use parameterised placeholders (?) for the status values to avoid
+      // the SQL-injection-by-pattern risk of template literal interpolation.
+      // This also matches the prepared-statement convention used throughout
+      // the rest of this repository.
       const row = this.db
-        .prepare<[], CountsRow>(`
+        .prepare<[string, string], CountsRow>(`
           SELECT
-            COUNT(*)                                                                       AS total,
-            SUM(CASE WHEN status = '${TodoStatus.active}'    THEN 1 ELSE 0 END)           AS active,
-            SUM(CASE WHEN status = '${TodoStatus.completed}' THEN 1 ELSE 0 END)           AS completed
+            COUNT(*)                                             AS total,
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END)         AS active,
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END)         AS completed
           FROM todos
         `)
-        .get()
+        .get(TodoStatus.active, TodoStatus.completed)
 
       // SUM returns NULL on an empty table — coerce to 0
       return {

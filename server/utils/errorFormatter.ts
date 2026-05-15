@@ -10,6 +10,13 @@ import { InvalidTitleError } from '~~/server/domain/errors/InvalidTitleError'
 import { TodoNotFoundError } from '~~/server/domain/errors/TodoNotFoundError'
 import type { ApiErrorCode } from '~~/server/utils/errors'
 
+/**
+ * Generic human-readable message returned for any unhandled or unexpected
+ * server error.  A single constant ensures the message is consistent and
+ * avoids leaking internal framework details.
+ */
+const GENERIC_ERROR_MESSAGE = 'An unexpected error occurred.'
+
 export interface ApiErrorBody {
   error: ApiErrorCode
   message: string
@@ -64,13 +71,15 @@ export function formatApiError(err: unknown): FormattedApiError {
       }
     }
 
-    // Generic H3 error — derive code from status
+    // Generic H3 error (from framework or middleware, not from our apiError() helper).
+    // Return a safe generic message rather than `err.message` to prevent leaking
+    // internal framework details (routing state, file paths, etc.) to clients.
     const statusCode = err.statusCode ?? 500
     return {
       statusCode,
       body: {
         error: statusCodeToErrorCode(statusCode),
-        message: err.message,
+        message: GENERIC_ERROR_MESSAGE,
       },
     }
   }
@@ -79,6 +88,6 @@ export function formatApiError(err: unknown): FormattedApiError {
   console.error('[api] Unhandled error:', err)
   return {
     statusCode: 500,
-    body: { error: 'INTERNAL_ERROR', message: 'An unexpected error occurred.' },
+    body: { error: 'INTERNAL_ERROR', message: GENERIC_ERROR_MESSAGE },
   }
 }
