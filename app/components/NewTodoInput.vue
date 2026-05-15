@@ -15,16 +15,22 @@
  */
 
 import { ref } from 'vue'
+import { KEY_ENTER, KEY_ESCAPE } from '~/utils/keyboard'
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const KEY_ENTER = 'Enter'
-const KEY_ESCAPE = 'Escape'
 const FALLBACK_CREATE_ERROR = 'Failed to create todo'
 
-/** Maximum title length — mirrors the server-side TodoTitle invariant. */
+/**
+ * Maximum title length — mirrors TodoTitle.MAX_LENGTH on the server
+ * (server/domain/value-objects/TodoTitle.ts).
+ *
+ * Duplicated here because client components cannot import server-only modules
+ * across the Nuxt server/client boundary. If the server-side limit changes,
+ * this constant must be updated to match.
+ */
 const MAX_TITLE_LENGTH = 500
 
 // ---------------------------------------------------------------------------

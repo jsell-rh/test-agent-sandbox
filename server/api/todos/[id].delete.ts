@@ -7,7 +7,7 @@
  * Response 404: TodoNotFoundError
  */
 
-import { defineEventHandler, getRouterParam, setResponseStatus } from 'h3'
+import { defineEventHandler, getRouterParam, sendNoContent } from 'h3'
 import { getTodoRepository } from '~~/server/plugins/database'
 import { notFound } from '~~/server/utils/errors'
 
@@ -24,6 +24,7 @@ export default defineEventHandler(async (event) => {
   todo.delete()
   repo.delete(todo.id)
 
-  setResponseStatus(event, 204)
-  return null
+  // Send 204 No Content — spec requires no response body.
+  // `sendNoContent` (H3) sets the status and ends the response without serialising anything.
+  return sendNoContent(event, 204)
 })

@@ -507,6 +507,89 @@ describe('pages/index.vue — error from updateTodoTitle failure', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Blank title in edit mode → delete (spec UI Critical Test Case #5)
+//
+// "Submitting blank title in edit mode deletes the item"
+//
+// The full integration path:
+//   TodoItem emits edit-submit('')
+//   → index.vue handleEditSubmit(id, '') detects empty string
+//   → calls deleteTodo(id)
+//   → on success: removes todo from todos[], item disappears from DOM
+// ---------------------------------------------------------------------------
+
+describe('pages/index.vue — blank edit submit triggers delete (UI spec critical case #5)', () => {
+  const EDIT_INPUT_SELECTOR = '[data-testid="todo-edit-input"]'
+  const TITLE_SELECTOR = '[data-testid="todo-title"]'
+  const TODO_ITEM_SELECTOR = '[data-testid="todo-item"]'
+
+  it('submitting a blank title in edit mode removes the todo from the list', async () => {
+    fakeTodos = [
+      makeTodo({ id: '00000000-0000-4000-8000-000000000001', title: 'Delete me' }),
+    ]
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.findAll(TODO_ITEM_SELECTOR)).toHaveLength(1)
+
+    // Enter edit mode via double-click on the title
+    await wrapper.find(TITLE_SELECTOR).trigger('dblclick')
+    await flushPromises()
+
+    // Submit an empty title — triggers delete (spec: "Submitting an empty string deletes the Todo")
+    const editInput = wrapper.find<HTMLInputElement>(EDIT_INPUT_SELECTOR)
+    await editInput.setValue('')
+    await editInput.trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+
+    // The item must be removed from the rendered list
+    expect(wrapper.findAll(TODO_ITEM_SELECTOR)).toHaveLength(0)
+  })
+
+  it('submitting whitespace-only title in edit mode also removes the todo', async () => {
+    fakeTodos = [
+      makeTodo({ id: '00000000-0000-4000-8000-000000000001', title: 'Delete me too' }),
+    ]
+    const wrapper = mountPage()
+    await flushPromises()
+
+    await wrapper.find(TITLE_SELECTOR).trigger('dblclick')
+    await flushPromises()
+
+    const editInput = wrapper.find<HTMLInputElement>(EDIT_INPUT_SELECTOR)
+    // TodoItem trims the value before emitting — whitespace → '' → delete
+    await editInput.setValue('   ')
+    await editInput.trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+
+    expect(wrapper.findAll(TODO_ITEM_SELECTOR)).toHaveLength(0)
+  })
+
+  it('deleteTodo is called (not updateTodoTitle) when blank title is submitted', async () => {
+    fakeTodos = [
+      makeTodo({ id: '00000000-0000-4000-8000-000000000001', title: 'Check which action fires' }),
+    ]
+    const wrapper = mountPage()
+    await flushPromises()
+
+    await wrapper.find(TITLE_SELECTOR).trigger('dblclick')
+    await flushPromises()
+
+    const editInput = wrapper.find<HTMLInputElement>(EDIT_INPUT_SELECTOR)
+    await editInput.setValue('')
+    await editInput.trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+
+    // Verify the correct action was invoked
+    const state = wrapper.getCurrentComponent().setupState as {
+      deleteTodo: ReturnType<typeof import('vitest').vi.fn>
+    }
+    expect(state.deleteTodo).toHaveBeenCalledOnce()
+    expect(state.deleteTodo).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000001')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // loadTodos failure (initial page load) — error surfaced
 // ---------------------------------------------------------------------------
 
