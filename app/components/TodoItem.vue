@@ -26,6 +26,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 import { FILTER_ACTIVE, FILTER_COMPLETED } from '../composables/useTodos'
+import { KEY_ENTER, KEY_ESCAPE } from '~/utils/keyboard'
 import type { TodoResource } from '../composables/useTodos'
 
 // ---------------------------------------------------------------------------
@@ -67,19 +68,39 @@ const checkboxId = computed(() => `todo-checkbox-${props.todo.id}`)
 // ---------------------------------------------------------------------------
 
 /**
+ * Escape `<` and `>` to prevent raw HTML tags from being interpreted by
+ * `marked` or the browser via `v-html`.
+ *
+ * Only angle brackets are escaped — NOT `&` — because `marked` already
+ * escapes `&` in text nodes during rendering (double-escaping `&` would
+ * produce incorrect output such as `&amp;amp;`).
+ *
+ * Markdown syntax (*, _, `, [], ()) does not use `<` or `>`, so pre-escaping
+ * angle brackets does not affect bold, italic, inline code, or link rendering.
+ */
+function escapeAngleBrackets(text: string): string {
+  return text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/**
  * Render the todo title as inline Markdown HTML.
  *
  * Uses marked.parseInline() to produce inline elements only (bold, italic,
  * code, links) — no block-level wrapping tags (e.g. <p>). This keeps the
  * title visually correct within a list item.
  *
- * Security: `marked` with default options escapes raw HTML (html: false by
- * default), so direct HTML injection is blocked. We additionally sanitize
- * `javascript:` protocol from link hrefs to prevent XSS via crafted links.
+ * Security:
+ *  - `marked` v15 passes raw HTML tags through without escaping.
+ *    We pre-escape `<` and `>` so that any HTML in the title renders as
+ *    visible text rather than executable markup.
+ *  - Additionally strip `javascript:` protocol from link hrefs as
+ *    defence-in-depth against crafted link XSS.
  */
 const renderedTitle = computed<string>(() => {
+  // Pre-escape angle brackets to neutralise raw HTML injection via v-html.
+  const safe = escapeAngleBrackets(props.todo.title)
   // { async: false } ensures the return type is statically `string`
-  const raw = marked.parseInline(props.todo.title, { async: false })
+  const raw = marked.parseInline(safe, { async: false })
   // Strip javascript: protocol from links (defence-in-depth against XSS)
   return raw.replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"')
 })
@@ -142,10 +163,10 @@ function _submitEdit(): void {
 }
 
 function handleEditKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Enter') {
+  if (event.key === KEY_ENTER) {
     _submitEdit()
   }
-  else if (event.key === 'Escape') {
+  else if (event.key === KEY_ESCAPE) {
     _pendingKeyboardAction = true
     emit('edit-cancel')
   }

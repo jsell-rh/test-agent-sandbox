@@ -86,10 +86,11 @@ export const API_TODOS_PATH = '/api/todos'
 /**
  * The path for the bulk-delete completed todos endpoint.
  *
- * Used by `clearCompleted()` — exported so tests can reference it
- * without hardcoding the literal (configuration hardcoding rule).
+ * Composed from `API_TODOS_PATH` and `FILTER_COMPLETED` so that the value
+ * stays in sync with both constants — no independent magic string embedding.
+ * Exported so tests can reference it without hardcoding the literal.
  */
-export const API_TODOS_COMPLETED_PATH = '/api/todos?status=completed'
+export const API_TODOS_COMPLETED_PATH = `${API_TODOS_PATH}?status=${FILTER_COMPLETED}`
 
 /**
  * Return the resource path for a single Todo.
