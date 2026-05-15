@@ -579,6 +579,59 @@ describe('useTodos — toggleTodo()', () => {
     expect(todos.value[0]!.status).toBe('active')
     expect(fetch).toHaveBeenCalledOnce() // only the initial loadTodos
   })
+
+  it('rapid toggles — second request supersedes first; final server state wins', async () => {
+    /**
+     * Failure mode from spec: "Duplicate rapid toggles: Second request supersedes first;
+     * final server state wins."
+     *
+     * Sequence:
+     *  1. Toggle 1 fires — optimistic flip to 'completed'.
+     *  2. Before Toggle 1 resolves, Toggle 2 fires — optimistic flip back to 'active'.
+     *  3. Toggle 1 resolves with { status: 'completed' } — stored in todos[].
+     *  4. Toggle 2 resolves with { status: 'active' } — stored in todos[], superseding Toggle 1.
+     * Final state: 'active' (the server state for the second, last request).
+     */
+    const activeTodo = makeTodo({ id: ACTIVE_ID, status: 'active' })
+
+    let resolveToggle1!: (v: TodoResource) => void
+    let resolveToggle2!: (v: TodoResource) => void
+    const toggle1Promise = new Promise<TodoResource>(r => { resolveToggle1 = r })
+    const toggle2Promise = new Promise<TodoResource>(r => { resolveToggle2 = r })
+
+    const fetch = makeApiFetch([
+      () => Promise.resolve(fakeResponse([activeTodo])), // loadTodos
+      () => toggle1Promise,                              // first PATCH
+      () => toggle2Promise,                              // second PATCH
+    ])
+
+    const { todos, loadTodos, toggleTodo } = useTodos(fetch)
+    await loadTodos()
+
+    // Fire Toggle 1 (active → completed)
+    const t1 = toggleTodo(ACTIVE_ID)
+    // Optimistic: flipped to 'completed'
+    expect(todos.value[0]!.status).toBe('completed')
+
+    // Fire Toggle 2 before Toggle 1 resolves (completed → active)
+    const t2 = toggleTodo(ACTIVE_ID)
+    // Optimistic: flipped back to 'active'
+    expect(todos.value[0]!.status).toBe('active')
+
+    // Toggle 1 resolves — server says 'completed'
+    resolveToggle1({ ...activeTodo, status: 'completed' })
+    await t1
+    // Toggle 1's response is applied; however Toggle 2 is still in-flight
+    // and was issued AFTER Toggle 1. The exact mid-flight state depends on
+    // array-index stability; we do not assert intermediate state here.
+
+    // Toggle 2 resolves — server says 'active' (the last request wins)
+    resolveToggle2({ ...activeTodo, status: 'active' })
+    await t2
+
+    // Final state reflects the server's response to the LAST toggle issued
+    expect(todos.value[0]!.status).toBe('active')
+  })
 })
 
 // ---------------------------------------------------------------------------
