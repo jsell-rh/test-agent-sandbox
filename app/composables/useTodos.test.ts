@@ -7,15 +7,23 @@
  *   - filteredTodos computed follows the active FilterCriteria
  *   - counts computed reflects the full todos[], not the filtered view
  *   - createTodo() prepends new todo and delegates to POST /api/todos
+ *   - clearCompleted() bulk-deletes completed todos via DELETE /api/todos?status=completed
  *
  * Strategy:
- *   Fake fetch/create functions are injected via optional parameters so tests
+ *   Fake fetch/create/delete functions are injected via optional parameters so tests
  *   exercise real behaviour without touching the network or Nuxt globals.
  */
 
 import { describe, it, expect, vi } from 'vitest'
-import { useTodos, FILTER_ALL, FILTER_ACTIVE, FILTER_COMPLETED, API_TODOS_PATH } from './useTodos'
-import type { TodoResource, TodoListResponse, CreateFn } from './useTodos'
+import {
+  useTodos,
+  FILTER_ALL,
+  FILTER_ACTIVE,
+  FILTER_COMPLETED,
+  API_TODOS_PATH,
+  API_TODOS_COMPLETED_PATH,
+} from './useTodos'
+import type { TodoResource, TodoListResponse, CreateFn, ClearCompletedResponse } from './useTodos'
 
 // ---------------------------------------------------------------------------
 // Fake helpers
@@ -25,7 +33,7 @@ function makeTodo(overrides: Partial<TodoResource> = {}): TodoResource {
   return {
     id: 'aaaaaaaa-0000-4000-8000-000000000001',
     title: 'Test todo',
-    status: 'active',
+    status: FILTER_ACTIVE,
     createdAt: '2024-01-01T10:00:00.000Z',
     updatedAt: '2024-01-01T10:00:00.000Z',
     ...overrides,
@@ -90,7 +98,7 @@ describe('useTodos — loadTodos()', () => {
     await loadTodos()
 
     expect(todos.value).toHaveLength(1)
-    expect(todos.value[0]).toMatchObject({ title: 'Buy milk', status: 'active' })
+    expect(todos.value[0]).toMatchObject({ title: 'Buy milk', status: FILTER_ACTIVE })
   })
 
   it('calls the API endpoint', async () => {
@@ -153,12 +161,12 @@ describe('useTodos — filteredTodos computed', () => {
     const active = makeTodo({
       id: '00000000-0000-4000-8000-000000000001',
       title: 'Active task',
-      status: 'active',
+      status: FILTER_ACTIVE,
     })
     const completed = makeTodo({
       id: '00000000-0000-4000-8000-000000000002',
       title: 'Done task',
-      status: 'completed',
+      status: FILTER_COMPLETED,
     })
     const fetch = fakeFetch(fakeResponse([active, completed]))
     const state = useTodos(fetch)
@@ -176,21 +184,21 @@ describe('useTodos — filteredTodos computed', () => {
     const { filter, filteredTodos } = await setupWithMixed()
     filter.value = FILTER_ACTIVE
     expect(filteredTodos.value).toHaveLength(1)
-    expect(filteredTodos.value[0]!.status).toBe('active')
+    expect(filteredTodos.value[0]!.status).toBe(FILTER_ACTIVE)
   })
 
   it('filter=completed excludes active todos', async () => {
     const { filter, filteredTodos } = await setupWithMixed()
     filter.value = FILTER_COMPLETED
     expect(filteredTodos.value).toHaveLength(1)
-    expect(filteredTodos.value[0]!.status).toBe('completed')
+    expect(filteredTodos.value[0]!.status).toBe(FILTER_COMPLETED)
   })
 
   it('switching filter requires no additional fetch call', async () => {
     const fetch = fakeFetch(
       fakeResponse([
-        makeTodo({ status: 'active' }),
-        makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: 'completed' }),
+        makeTodo({ status: FILTER_ACTIVE }),
+        makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED }),
       ]),
     )
     const { filter, filteredTodos, loadTodos } = useTodos(fetch)
@@ -217,11 +225,11 @@ describe('useTodos — counts computed', () => {
   it('counts always reflect the full todos[], not the filtered view', async () => {
     const active = makeTodo({
       id: '00000000-0000-4000-8000-000000000001',
-      status: 'active',
+      status: FILTER_ACTIVE,
     })
     const completed = makeTodo({
       id: '00000000-0000-4000-8000-000000000002',
-      status: 'completed',
+      status: FILTER_COMPLETED,
     })
     const fetch = fakeFetch(fakeResponse([active, completed]))
     const { filter, counts, loadTodos } = useTodos(fetch)
@@ -315,5 +323,118 @@ describe('useTodos — createTodo()', () => {
     const { createTodo } = useTodos(fakeFetch(fakeResponse([])), createFn)
 
     await expect(createTodo('Anything')).rejects.toThrow('Server Error')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// clearCompleted — bulk delete action
+// ---------------------------------------------------------------------------
+
+/** Fake delete function that resolves with the given response. */
+function fakeDeleteFn(response: ClearCompletedResponse) {
+  return vi.fn().mockResolvedValue(response)
+}
+
+describe('useTodos — clearCompleted()', () => {
+  it('calls DELETE on API_TODOS_COMPLETED_PATH', async () => {
+    const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE })
+    const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED })
+    const fetch = fakeFetch(fakeResponse([active, completed]))
+    const deleteFn = fakeDeleteFn({ deletedCount: 1 })
+    const { loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    await loadTodos()
+
+    await clearCompleted()
+
+    expect(deleteFn).toHaveBeenCalledOnce()
+    expect(deleteFn).toHaveBeenCalledWith(API_TODOS_COMPLETED_PATH)
+  })
+
+  it('removes all completed todos from todos[]', async () => {
+    const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE })
+    const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED })
+    const fetch = fakeFetch(fakeResponse([active, completed]))
+    const deleteFn = fakeDeleteFn({ deletedCount: 1 })
+    const { todos, loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    await loadTodos()
+
+    expect(todos.value).toHaveLength(2)
+
+    await clearCompleted()
+
+    expect(todos.value).toHaveLength(1)
+    expect(todos.value[0]!.status).toBe(FILTER_ACTIVE)
+  })
+
+  it('leaves active todos intact after clearCompleted', async () => {
+    const active1 = makeTodo({ id: '00000000-0000-4000-8000-000000000001', title: 'Keep me', status: FILTER_ACTIVE })
+    const active2 = makeTodo({ id: '00000000-0000-4000-8000-000000000002', title: 'Keep me too', status: FILTER_ACTIVE })
+    const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000003', status: FILTER_COMPLETED })
+    const fetch = fakeFetch(fakeResponse([active1, active2, completed]))
+    const deleteFn = fakeDeleteFn({ deletedCount: 1 })
+    const { todos, loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    await loadTodos()
+
+    await clearCompleted()
+
+    expect(todos.value).toHaveLength(2)
+    expect(todos.value.map(t => t.title)).toEqual(['Keep me', 'Keep me too'])
+  })
+
+  it('returns the deletedCount from the API response', async () => {
+    const c1 = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_COMPLETED })
+    const c2 = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED })
+    const fetch = fakeFetch(fakeResponse([c1, c2]))
+    const deleteFn = fakeDeleteFn({ deletedCount: 2 })
+    const { loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    await loadTodos()
+
+    const count = await clearCompleted()
+
+    expect(count).toBe(2)
+  })
+
+  it('when no completed todos exist, todos[] is unchanged and deletedCount is 0', async () => {
+    const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE })
+    const fetch = fakeFetch(fakeResponse([active]))
+    const deleteFn = fakeDeleteFn({ deletedCount: 0 })
+    const { todos, loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    await loadTodos()
+
+    const count = await clearCompleted()
+
+    expect(todos.value).toHaveLength(1)
+    expect(count).toBe(0)
+  })
+
+  it('re-throws on DELETE failure and leaves todos[] unchanged', async () => {
+    const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE })
+    const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED })
+    const fetch = fakeFetch(fakeResponse([active, completed]))
+    const deleteFn = vi.fn().mockRejectedValue(new Error('Network error'))
+    const { todos, loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    await loadTodos()
+
+    await expect(clearCompleted()).rejects.toThrow('Network error')
+
+    // todos[] must be unchanged — server call failed, no local mutation occurred
+    expect(todos.value).toHaveLength(2)
+  })
+
+  it('counts computed updates reactively after clearCompleted — completed drops to 0', async () => {
+    const active = makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE })
+    const completed = makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED })
+    const fetch = fakeFetch(fakeResponse([active, completed]))
+    const deleteFn = fakeDeleteFn({ deletedCount: 1 })
+    const { counts, loadTodos, clearCompleted } = useTodos(fetch, undefined, deleteFn)
+    await loadTodos()
+
+    expect(counts.value).toEqual({ all: 2, active: 1, completed: 1 })
+
+    await clearCompleted()
+
+    // The computed must reflect the post-clear state immediately (no extra loadTodos call).
+    // This is what drives the "Clear completed" button disappearing in the UI.
+    expect(counts.value).toEqual({ all: 1, active: 1, completed: 0 })
   })
 })
