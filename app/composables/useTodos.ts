@@ -8,6 +8,14 @@
  *
  * The full todo list is loaded once on mount; all filtering is client-side
  * so filter tab changes require no additional network requests.
+ *
+ * Actions:
+ *   loadTodos()          — fetch all todos from API on mount
+ *   toggleTodo(id)       — optimistic status flip; rollback on API error
+ *   deleteTodo(id)       — optimistic removal; rollback on API error
+ *   updateTodoTitle(id)  — patch title; clears editingTodoId on success
+ *   startEditing(id)     — set editingTodoId
+ *   cancelEditing()      — clear editingTodoId
  */
 
 import { ref, computed } from 'vue'
@@ -38,6 +46,20 @@ export interface TodoListResponse {
   }
 }
 
+/** Options for a mutation request. */
+export interface FetchOptions {
+  method?: 'GET' | 'PATCH' | 'DELETE' | 'POST'
+  body?: Record<string, unknown>
+}
+
+/**
+ * Generic API fetch function injected into the composable.
+ *
+ * Defaults to the global $fetch (Nuxt). Tests inject a fake to avoid
+ * network calls without touching global state.
+ */
+export type ApiFetchFn = <T = unknown>(url: string, options?: FetchOptions) => Promise<T>
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -47,15 +69,21 @@ export const FILTER_ACTIVE: FilterCriteria = 'active'
 export const FILTER_COMPLETED: FilterCriteria = 'completed'
 
 /**
- * The resource path for the todos API endpoint.
+ * The resource path for the todos collection API endpoint.
  *
- * Constructed as `${runtimeConfig.public.apiBase}/todos` where
- * `apiBase` defaults to `/api` (see nuxt.config.ts).  If `apiBase`
- * ever changes, this constant must be updated to match.
- *
- * Exported so tests can reference it without hardcoding the literal.
+ * Constructed from the Nuxt public runtime config `apiBase` (default: `/api`)
+ * plus `/todos`. Exported so tests can reference it without hardcoding the literal.
  */
 export const API_TODOS_PATH = '/api/todos'
+
+/**
+ * Return the resource path for a single Todo.
+ *
+ * @param id - TodoId (UUID v4)
+ */
+export function apiTodoPath(id: string): string {
+  return `${API_TODOS_PATH}/${id}`
+}
 
 // ---------------------------------------------------------------------------
 // Composable
@@ -63,16 +91,16 @@ export const API_TODOS_PATH = '/api/todos'
 
 /**
  * Returns the three state variables and derived state from the UI State Machine,
- * plus `loadTodos()` which must be called on page mount.
+ * plus action functions for all user interactions.
  *
- * @param fetchFn - optional fetch override; defaults to the global $fetch (Nuxt).
+ * @param apiFetch - optional fetch override; defaults to the global $fetch (Nuxt).
  *   Accepts a replacement so that unit tests can inject a fake without
  *   touching global state.
  */
 export function useTodos(
-  fetchFn: (url: string) => Promise<TodoListResponse> = (url) =>
+  apiFetch: ApiFetchFn = <T>(url: string, options?: FetchOptions) =>
     // eslint-disable-next-line no-undef
-    ($fetch as (url: string) => Promise<TodoListResponse>)(url),
+    ($fetch as (url: string, options?: FetchOptions) => Promise<T>)(url, options),
 ) {
   // ---------------------------------------------------
   // State machine (spec: UI State Machine)
@@ -127,8 +155,109 @@ export function useTodos(
    * that ordering is preserved as-is.
    */
   async function loadTodos(): Promise<void> {
-    const data = await fetchFn(API_TODOS_PATH)
+    const data = await apiFetch<TodoListResponse>(API_TODOS_PATH)
     todos.value = data.todos
+  }
+
+  /**
+   * Toggle a Todo's status between active and completed.
+   *
+   * Optimistic update: the status is flipped immediately before the API
+   * responds. On error, the previous status is restored and the error
+   * propagates to the caller for display.
+   *
+   * Non-functional requirement: "Optimistic UI updates for toggle; rollback on API error"
+   */
+  async function toggleTodo(id: string): Promise<void> {
+    const idx = todos.value.findIndex(t => t.id === id)
+    if (idx === -1) return
+
+    const todo = todos.value[idx]!
+    const previousStatus = todo.status
+    const nextStatus: TodoResource['status'] = previousStatus === FILTER_ACTIVE ? FILTER_COMPLETED : FILTER_ACTIVE
+
+    // Optimistic update — flip immediately
+    todos.value[idx] = { ...todo, status: nextStatus }
+
+    try {
+      const updated = await apiFetch<TodoResource>(apiTodoPath(id), {
+        method: 'PATCH',
+        body: { status: nextStatus },
+      })
+      todos.value[idx] = updated
+    }
+    catch (err) {
+      // Rollback to previous state
+      todos.value[idx] = { ...todo, status: previousStatus }
+      throw err
+    }
+  }
+
+  /**
+   * Permanently remove a Todo.
+   *
+   * Optimistic update: the item is removed from todos[] before the API
+   * responds. On error, the full list is restored and the error propagates.
+   *
+   * Non-functional requirement: "Optimistic UI updates for delete; rollback on API error"
+   */
+  async function deleteTodo(id: string): Promise<void> {
+    const previousTodos = [...todos.value]
+
+    // Optimistic: remove immediately
+    todos.value = todos.value.filter(t => t.id !== id)
+
+    try {
+      await apiFetch(apiTodoPath(id), { method: 'DELETE' })
+      // Clear editing state if the deleted todo was being edited
+      if (editingTodoId.value === id) {
+        editingTodoId.value = null
+      }
+    }
+    catch (err) {
+      // Rollback
+      todos.value = previousTodos
+      throw err
+    }
+  }
+
+  /**
+   * Update a Todo's title.
+   *
+   * On success, the todo is updated in todos[] and editingTodoId is cleared.
+   * On error, the error propagates to the caller (no optimistic update —
+   * the title change is only applied once the server confirms it).
+   */
+  async function updateTodoTitle(id: string, newTitle: string): Promise<void> {
+    const updated = await apiFetch<TodoResource>(apiTodoPath(id), {
+      method: 'PATCH',
+      body: { title: newTitle },
+    })
+
+    const idx = todos.value.findIndex(t => t.id === id)
+    if (idx !== -1) {
+      todos.value[idx] = updated
+    }
+    editingTodoId.value = null
+  }
+
+  /**
+   * Enter edit mode for a specific Todo.
+   *
+   * Only one todo can be edited at a time — calling this while another
+   * todo is being edited replaces the editingTodoId.
+   */
+  function startEditing(id: string): void {
+    editingTodoId.value = id
+  }
+
+  /**
+   * Cancel edit mode without saving.
+   *
+   * Spec: "User presses Escape in edit field → clear editingTodoId (no API call)"
+   */
+  function cancelEditing(): void {
+    editingTodoId.value = null
   }
 
   return {
@@ -141,5 +270,10 @@ export function useTodos(
     counts,
     // Actions
     loadTodos,
+    toggleTodo,
+    deleteTodo,
+    updateTodoTitle,
+    startEditing,
+    cancelEditing,
   }
 }
