@@ -185,10 +185,13 @@ async function handleClearCompleted(): Promise<void> {
   <div class="todo-app">
     <AppHeader />
 
-    <!-- Non-blocking inline error notification; visible only when an error is active -->
+    <!-- Non-blocking inline error notification; visible only when an error is active.
+         The non-null assertion (!) is safe: the v-if guard ensures errorMessage is
+         a string when this subtree is rendered. Vue templates do not narrow Ref
+         types inside v-if, so we assert the type explicitly. -->
     <ErrorNotification
       v-if="errorMessage !== null"
-      :message="errorMessage"
+      :message="errorMessage!"
       @dismiss="dismissError()"
     />
 

@@ -26,6 +26,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { ref, computed } from 'vue'
+import { ERROR_DISMISS_MS } from '../composables/useErrorNotification'
 import {
   FILTER_ALL,
   FILTER_ACTIVE,
@@ -38,6 +39,7 @@ import type { TodoResource, FilterCriteria } from '../composables/useTodos'
 // ---------------------------------------------------------------------------
 
 let fakeTodos: TodoResource[] = []
+let loadTodosShouldFail = false
 let toggleShouldFail = false
 let deleteShouldFail = false
 let updateTitleShouldFail = false
@@ -65,6 +67,9 @@ vi.mock('../composables/useTodos', async (importOriginal) => {
       }))
 
       const loadTodos = vi.fn().mockImplementation(async () => {
+        if (loadTodosShouldFail) {
+          throw new Error('Network error on load')
+        }
         todos.value = [...fakeTodos]
       })
 
@@ -168,7 +173,6 @@ import IndexPage from './index.vue'
 const TODO_ITEM_SELECTOR = '[data-testid="todo-item"]'
 const TODO_CHECKBOX_SELECTOR = '[data-testid="todo-checkbox"]'
 const TODO_DELETE_SELECTOR = '[data-testid="todo-delete"]'
-const NEW_TODO_INPUT_STUB = '[data-testid="new-todo-input-stub"]'
 const ERROR_NOTIFICATION_SELECTOR = '[data-testid="error-notification"]'
 const ERROR_MESSAGE_SELECTOR = '[data-testid="error-message"]'
 const ERROR_DISMISS_SELECTOR = '[data-testid="error-dismiss"]'
@@ -212,6 +216,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.useFakeTimers()
   fakeTodos = []
+  loadTodosShouldFail = false
   toggleShouldFail = false
   deleteShouldFail = false
   updateTitleShouldFail = false
@@ -249,8 +254,8 @@ describe('pages/index.vue — error from NewTodoInput', () => {
 
     expect(wrapper.find(ERROR_NOTIFICATION_SELECTOR).exists()).toBe(true)
 
-    // Advance fake timers by 5000ms (ERROR_DISMISS_MS)
-    await vi.advanceTimersByTimeAsync(5000)
+    // Advance fake timers by ERROR_DISMISS_MS
+    await vi.advanceTimersByTimeAsync(ERROR_DISMISS_MS)
     await flushPromises()
 
     expect(wrapper.find(ERROR_NOTIFICATION_SELECTOR).exists()).toBe(false)
@@ -264,7 +269,7 @@ describe('pages/index.vue — error from NewTodoInput', () => {
     await stub.vm.$emit('error', 'Persistent error')
     await flushPromises()
 
-    await vi.advanceTimersByTimeAsync(4999)
+    await vi.advanceTimersByTimeAsync(ERROR_DISMISS_MS - 1)
     await flushPromises()
 
     expect(wrapper.find(ERROR_NOTIFICATION_SELECTOR).exists()).toBe(true)
@@ -385,7 +390,7 @@ describe('pages/index.vue — previously loaded list visible on network failure'
 
     expect(wrapper.find(ERROR_NOTIFICATION_SELECTOR).exists()).toBe(true)
 
-    await vi.advanceTimersByTimeAsync(5000)
+    await vi.advanceTimersByTimeAsync(ERROR_DISMISS_MS)
     await flushPromises()
 
     expect(wrapper.find(ERROR_NOTIFICATION_SELECTOR).exists()).toBe(false)
@@ -407,8 +412,9 @@ describe('pages/index.vue — error message replacement', () => {
     await stub.vm.$emit('error', 'First error')
     await flushPromises()
 
-    // Advance almost to auto-dismiss
-    await vi.advanceTimersByTimeAsync(4900)
+    // Advance almost to auto-dismiss (100ms before expiry)
+    const almostExpired = ERROR_DISMISS_MS - 100
+    await vi.advanceTimersByTimeAsync(almostExpired)
     await flushPromises()
 
     // Second error arrives — should replace first and reset timer
@@ -417,16 +423,110 @@ describe('pages/index.vue — error message replacement', () => {
 
     expect(wrapper.find(ERROR_MESSAGE_SELECTOR).text()).toContain('Second error')
 
-    // Advance 4900ms more — should NOT dismiss (timer was reset)
-    await vi.advanceTimersByTimeAsync(4900)
+    // Advance same interval — should NOT dismiss (timer was reset)
+    await vi.advanceTimersByTimeAsync(almostExpired)
     await flushPromises()
 
     expect(wrapper.find(ERROR_NOTIFICATION_SELECTOR).exists()).toBe(true)
 
     // Now advance past the reset timer
-    await vi.advanceTimersByTimeAsync(200)
+    await vi.advanceTimersByTimeAsync(100)
     await flushPromises()
 
     expect(wrapper.find(ERROR_NOTIFICATION_SELECTOR).exists()).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// clearCompleted failure — error surfaced
+// ---------------------------------------------------------------------------
+
+describe('pages/index.vue — error from clearCompleted failure', () => {
+  it('shows error notification when clearCompleted fails', async () => {
+    fakeTodos = [
+      makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE }),
+      makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED }),
+    ]
+    const wrapper = mountPage()
+    await flushPromises()
+
+    clearCompletedShouldFail = true
+    const clearBtn = wrapper.find('[data-testid="clear-completed"]')
+    await clearBtn.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find(ERROR_NOTIFICATION_SELECTOR).exists()).toBe(true)
+  })
+
+  it('todo list remains visible when clearCompleted fails', async () => {
+    fakeTodos = [
+      makeTodo({ id: '00000000-0000-4000-8000-000000000001', status: FILTER_ACTIVE }),
+      makeTodo({ id: '00000000-0000-4000-8000-000000000002', status: FILTER_COMPLETED }),
+    ]
+    const wrapper = mountPage()
+    await flushPromises()
+
+    clearCompletedShouldFail = true
+    await wrapper.find('[data-testid="clear-completed"]').trigger('click')
+    await flushPromises()
+
+    // Both todos must remain (clearCompleted threw before mutating state)
+    expect(wrapper.findAll(TODO_ITEM_SELECTOR)).toHaveLength(2)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// updateTodoTitle failure — error surfaced
+// ---------------------------------------------------------------------------
+
+describe('pages/index.vue — error from updateTodoTitle failure', () => {
+  const EDIT_INPUT_SELECTOR = '[data-testid="todo-edit-input"]'
+  const TITLE_SELECTOR = '[data-testid="todo-title"]'
+
+  it('shows error notification when updating a title fails', async () => {
+    fakeTodos = [
+      makeTodo({ id: '00000000-0000-4000-8000-000000000001', title: 'Original title' }),
+    ]
+    const wrapper = mountPage()
+    await flushPromises()
+
+    // Enter edit mode via double-click on the title
+    const titleEl = wrapper.find(TITLE_SELECTOR)
+    await titleEl.trigger('dblclick')
+    await flushPromises()
+
+    // Submit a new title that will be rejected by the server
+    updateTitleShouldFail = true
+    const editInput = wrapper.find<HTMLInputElement>(EDIT_INPUT_SELECTOR)
+    await editInput.setValue('New title')
+    await editInput.trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+
+    expect(wrapper.find(ERROR_NOTIFICATION_SELECTOR).exists()).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// loadTodos failure (initial page load) — error surfaced
+// ---------------------------------------------------------------------------
+
+describe('pages/index.vue — error from loadTodos failure', () => {
+  it('shows error notification when the initial load fails', async () => {
+    loadTodosShouldFail = true
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.find(ERROR_NOTIFICATION_SELECTOR).exists()).toBe(true)
+  })
+
+  it('todo list is empty but page does not crash when initial load fails', async () => {
+    loadTodosShouldFail = true
+    const wrapper = mountPage()
+    await flushPromises()
+
+    // Empty list — nothing was loaded
+    expect(wrapper.findAll(TODO_ITEM_SELECTOR)).toHaveLength(0)
+    // Page did not crash
+    expect(wrapper.exists()).toBe(true)
   })
 })

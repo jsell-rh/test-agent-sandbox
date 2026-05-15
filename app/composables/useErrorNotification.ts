@@ -45,9 +45,10 @@ export function useErrorNotification() {
   /**
    * Handle to the pending auto-dismiss timer.
    *
-   * Kept as a module-level variable (not a ref) because it never needs to
-   * drive template rendering — it is an implementation detail of the timer
-   * lifecycle management.
+   * An instance-level closure variable (not a ref) because it never needs to
+   * drive template rendering — it is purely an implementation detail of timer
+   * lifecycle management.  Each call to useErrorNotification() gets its own
+   * independent timer handle.
    */
   let dismissTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -56,7 +57,7 @@ export function useErrorNotification() {
    *
    * If a message is already visible, the previous timer is cancelled and a
    * new ERROR_DISMISS_MS countdown begins.  This ensures rapid errors
-   * each get a full 5-second window.
+   * each get a full ERROR_DISMISS_MS-millisecond window.
    *
    * @param message - The human-readable error string to display.
    */

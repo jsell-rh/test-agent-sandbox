@@ -69,13 +69,12 @@ describe('ErrorNotification — accessibility', () => {
     expect(role === 'alert' || ariaLive).toBeTruthy()
   })
 
-  it('dismiss button has an accessible label', () => {
+  it('dismiss button has an aria-label (visible × character is not a sufficient accessible name)', () => {
+    // The dismiss button shows '×' which is not meaningful to screen readers.
+    // An explicit aria-label is required to provide a useful accessible name.
     const wrapper = mountNotification('Error text')
     const btn = wrapper.find(DISMISS_SELECTOR)
-    const ariaLabel = btn.attributes('aria-label')
-    const text = btn.text()
-    // Either aria-label or visible text provides the accessible name
-    expect(ariaLabel || text).toBeTruthy()
+    expect(btn.attributes('aria-label')).toBeTruthy()
   })
 })
 

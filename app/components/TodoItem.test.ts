@@ -184,6 +184,30 @@ describe('TodoItem — accessibility', () => {
     const input = wrapper.find(EDIT_INPUT_SELECTOR)
     expect(input.attributes('aria-label')).toContain('My specific todo')
   })
+
+  it('title span has tabindex="0" making it keyboard-focusable', () => {
+    const wrapper = mountItem(makeTodo(), false)
+    const titleEl = wrapper.find(TITLE_SELECTOR)
+    expect(titleEl.attributes('tabindex')).toBe('0')
+  })
+
+  it('title span has role="button" so screen readers announce it as interactive', () => {
+    const wrapper = mountItem(makeTodo(), false)
+    const titleEl = wrapper.find(TITLE_SELECTOR)
+    expect(titleEl.attributes('role')).toBe('button')
+  })
+
+  it('pressing Enter on the title span emits "edit-start" (keyboard path into edit mode)', async () => {
+    const wrapper = mountItem(makeTodo(), false)
+    await wrapper.find(TITLE_SELECTOR).trigger('keydown', { key: 'Enter' })
+    expect(wrapper.emitted('edit-start')).toHaveLength(1)
+  })
+
+  it('delete button has an aria-label for screen reader identification', () => {
+    const wrapper = mountItem(makeTodo())
+    const deleteBtn = wrapper.find(DELETE_SELECTOR)
+    expect(deleteBtn.attributes('aria-label')).toBeTruthy()
+  })
 })
 
 // ---------------------------------------------------------------------------
