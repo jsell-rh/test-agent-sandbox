@@ -9,6 +9,12 @@
  *   filter         — FilterCriteria, default 'all'; applied client-side
  *   editingTodoId  — TodoId being edited, default null
  *
+ * Error display (via useErrorNotification — specs/interface.spec.md §
+ * Non-Functional Requirements):
+ *   All action errors are surfaced to the user as a non-blocking inline
+ *   ErrorNotification that auto-dismisses after 5 seconds.
+ *   The previously loaded todo list remains visible during errors.
+ *
  * This page wires together:
  *   - Header (AppHeader)
  *   - NewTodoInput (create new todos via POST /api/todos)
@@ -18,26 +24,28 @@
  *     - FilterTabs (canonical filter set — client-side only)
  *     - Clear completed button (DELETE /api/todos?status=completed)
  *   - Empty state message (when filteredTodos is empty)
+ *   - ErrorNotification (non-blocking; visible only when an error is active)
  *
  * All business/API logic is delegated to the useTodos composable.
  * This component is purely responsible for rendering and wiring events.
- *
- * Error handling:
- *   Errors from child components are stored in `errorMessage`. Display is
- *   wired by the ui-accessibility-errors task; this task persists the value
- *   so subsequent tasks can consume it.
  */
 
-import { onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import {
   useTodos,
   FILTER_ALL,
   FILTER_ACTIVE,
   FILTER_COMPLETED,
 } from '~/composables/useTodos'
+import { useErrorNotification } from '~/composables/useErrorNotification'
 import type { FilterCriteria } from '~/composables/useTodos'
 import FooterBar from '~/components/FooterBar.vue'
 import TodoItem from '~/components/TodoItem.vue'
+import ErrorNotification from '~/components/ErrorNotification.vue'
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
 /**
  * Contextual empty-state messages keyed by FilterCriteria.
@@ -52,6 +60,10 @@ const EMPTY_STATE_MESSAGES: Record<FilterCriteria, string> = {
   [FILTER_ACTIVE]: 'No active todos.',
   [FILTER_COMPLETED]: 'No completed todos.',
 }
+
+// ---------------------------------------------------------------------------
+// State machine
+// ---------------------------------------------------------------------------
 
 const {
   todos,
@@ -69,15 +81,27 @@ const {
   cancelEditing,
 } = useTodos()
 
-/** Holds the latest API error message; consumed by the error display (future task). */
-const errorMessage = ref<string | null>(null)
+// ---------------------------------------------------------------------------
+// Error notification
+// ---------------------------------------------------------------------------
 
-function handleCreateError(message: string): void {
-  errorMessage.value = message
-}
+const { errorMessage, showError, dismissError } = useErrorNotification()
+
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
 
 onMounted(async () => {
-  await loadTodos()
+  try {
+    await loadTodos()
+  }
+  catch (err) {
+    // Initial load failure: the todo list will be empty but that is the
+    // correct state — there is nothing to roll back.  We surface the error
+    // so the user knows the load failed.
+    const message = err instanceof Error ? err.message : 'Failed to load todos'
+    showError(message)
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -94,11 +118,49 @@ onMounted(async () => {
  *   "User submits empty title in edit field → DELETE /api/todos/:id"
  */
 async function handleEditSubmit(id: string, newTitle: string): Promise<void> {
-  if (newTitle === '') {
+  try {
+    if (newTitle === '') {
+      await deleteTodo(id)
+    }
+    else {
+      await updateTodoTitle(id, newTitle)
+    }
+  }
+  catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to update todo'
+    showError(message)
+  }
+}
+
+/**
+ * Handle toggle from a TodoItem.
+ *
+ * Errors are caught and surfaced — the optimistic rollback in useTodos
+ * restores the previous status in todos[].
+ */
+async function handleToggle(id: string): Promise<void> {
+  try {
+    await toggleTodo(id)
+  }
+  catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to update todo'
+    showError(message)
+  }
+}
+
+/**
+ * Handle delete from a TodoItem.
+ *
+ * Errors are caught and surfaced — the optimistic rollback in useTodos
+ * restores the removed item in todos[].
+ */
+async function handleDelete(id: string): Promise<void> {
+  try {
     await deleteTodo(id)
   }
-  else {
-    await updateTodoTitle(id, newTitle)
+  catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to delete todo'
+    showError(message)
   }
 }
 
@@ -106,16 +168,15 @@ async function handleEditSubmit(id: string, newTitle: string): Promise<void> {
  * Handle the "Clear completed" action.
  *
  * Catches any rejection from clearCompleted() so it does not become an
- * unhandled promise rejection.  Full error-state UI (inline messages,
- * auto-dismiss) is deferred to a later task that wires a global error
- * bus; this handler ensures the rejection is at least observed.
+ * unhandled promise rejection and surfaces the error to the user.
  */
 async function handleClearCompleted(): Promise<void> {
   try {
     await clearCompleted()
   }
   catch (err) {
-    console.error('[todo-app] clearCompleted failed:', err)
+    const message = err instanceof Error ? err.message : 'Failed to clear completed todos'
+    showError(message)
   }
 }
 </script>
@@ -124,9 +185,16 @@ async function handleClearCompleted(): Promise<void> {
   <div class="todo-app">
     <AppHeader />
 
+    <!-- Non-blocking inline error notification; visible only when an error is active -->
+    <ErrorNotification
+      v-if="errorMessage !== null"
+      :message="errorMessage"
+      @dismiss="dismissError()"
+    />
+
     <NewTodoInput
       :create-todo="createTodo"
-      @error="handleCreateError"
+      @error="showError($event)"
     />
 
     <section class="main" :aria-hidden="todos.length === 0 ? 'true' : undefined">
@@ -136,8 +204,8 @@ async function handleClearCompleted(): Promise<void> {
           :key="todo.id"
           :todo="todo"
           :is-editing="editingTodoId === todo.id"
-          @toggle="toggleTodo(todo.id)"
-          @delete="deleteTodo(todo.id)"
+          @toggle="handleToggle(todo.id)"
+          @delete="handleDelete(todo.id)"
           @edit-start="startEditing(todo.id)"
           @edit-submit="handleEditSubmit(todo.id, $event)"
           @edit-cancel="cancelEditing()"
