@@ -61,12 +61,14 @@ export function formatApiError(err: unknown): FormattedApiError {
     const data = err.data as { error?: ApiErrorCode; message?: string } | undefined
 
     if (data?.error) {
-      // Our own apiError() envelope — pass through as-is
+      // Our own apiError() envelope — pass through as-is.
+      // Defensive fallback: if data.message is absent, return the safe generic
+      // message rather than the raw H3 err.message which may contain internals.
       return {
         statusCode: err.statusCode,
         body: {
           error: data.error,
-          message: data.message ?? err.message,
+          message: data.message ?? GENERIC_ERROR_MESSAGE,
         },
       }
     }

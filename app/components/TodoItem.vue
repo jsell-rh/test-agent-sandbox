@@ -235,12 +235,13 @@ function handleBlur(): void {
       @blur="handleBlur"
     >
 
-    <!-- Delete button -->
+    <!-- Delete button — aria-label includes the todo title so screen-reader
+         users can distinguish which specific item will be deleted. -->
     <button
       data-testid="todo-delete"
       class="todo-delete"
       type="button"
-      aria-label="Delete todo"
+      :aria-label="`Delete todo: ${todo.title}`"
       @click="emit('delete')"
     >
       ×
