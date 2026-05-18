@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --todo-max-width: 720px;
+    --header-height: 64px;
+  }
+
+  html {
+    @apply antialiased;
+    font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans;
+    min-height: 100dvh;
+  }
+
+  *,
+  *::before,
+  *::after {
+    @apply box-border;
+  }
+
+  /* ── Focus ring ── */
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-brand-500 rounded-sm;
+  }
+}
+
+@layer components {
+  /* ── Card ── */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-200;
+  }
+
+  /* ── Todo item ── */
+  /* Note: `group` cannot be used with @apply — applied directly in templates */
+  .todo-item {
+    @apply flex items-center gap-3 px-4 py-3 border-b border-slate-100 last:border-b-0
+           transition-colors duration-75 hover:bg-slate-50;
+  }
+
+  /* ── Checkbox ── */
+  .todo-checkbox {
+    @apply w-5 h-5 rounded-full border-2 border-slate-300 flex-shrink-0 cursor-pointer
+           transition-all duration-150 flex items-center justify-center
+           group-hover:border-brand-400;
+  }
+
+  .todo-checkbox.checked {
+    @apply border-brand-500 bg-brand-500;
+  }
+
+  /* ── Filter tab ── */
+  .filter-tab {
+    @apply px-3 py-1 text-sm font-medium rounded-md transition-colors duration-100
+           text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer;
+  }
+
+  .filter-tab.active {
+    @apply text-brand-600 bg-brand-50 ring-1 ring-brand-200;
+  }
+
+  /* ── Danger button ── */
+  .btn-danger {
+    @apply text-sm text-slate-400 hover:text-red-500 transition-colors duration-100 cursor-pointer;
+  }
+}
+
+@layer utilities {
+  .text-ellipsis-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
