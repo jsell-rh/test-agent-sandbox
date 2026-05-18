@@ -93,14 +93,14 @@ class TestTodoComplete:
         assert events[0].todo_id == todo.id
 
     def test_complete_updates_updated_at(self) -> None:
+        import time
         todo = Todo.create(TodoTitle("Buy milk"))
         original_updated_at = todo.updated_at
         todo.pull_events()
-        # Small sleep to ensure timestamp difference
-        import time; time.sleep(0.001)
+        # Sleep briefly to guarantee clock advances before the next Timestamp.now() call.
+        time.sleep(0.01)
         todo.complete()
-        # updated_at should change (or at minimum not be None)
-        assert todo.updated_at is not None
+        assert todo.updated_at != original_updated_at
 
     def test_complete_on_already_completed_is_no_op(self) -> None:
         todo = Todo.create(TodoTitle("Buy milk"))
@@ -272,3 +272,17 @@ class TestTodoReconstitute:
         assert todo.status is status
         assert todo.created_at == created_at
         assert todo.updated_at == updated_at
+
+    def test_repr_contains_id_title_status(self) -> None:
+        from todo.domain.value_objects import TodoId, Timestamp
+        todo = Todo.reconstitute(
+            id=TodoId.of("test-id"),
+            title=TodoTitle("Buy milk"),
+            status=TodoStatus.ACTIVE,
+            created_at=Timestamp.now(),
+            updated_at=Timestamp.now(),
+        )
+        r = repr(todo)
+        assert "test-id" in r
+        assert "Buy milk" in r
+        assert "active" in r

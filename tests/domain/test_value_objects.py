@@ -73,6 +73,10 @@ class TestTodoTitle:
 class TestTodoId:
     """TodoId value object."""
 
+    def test_empty_string_raises_value_error(self) -> None:
+        with pytest.raises(ValueError):
+            TodoId.of("")
+
     def test_generate_returns_non_empty_id(self) -> None:
         todo_id = TodoId.generate()
         assert todo_id.value

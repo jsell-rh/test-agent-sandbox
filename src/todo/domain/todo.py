@@ -15,6 +15,7 @@ from todo.domain.events import (
     TodoTitleUpdated,
 )
 from todo.domain.value_objects import (
+    TODO_TITLE_MAX_LENGTH,
     Timestamp,
     TodoId,
     TodoStatus,
@@ -29,7 +30,7 @@ class Todo:
     Invariants enforced here (not in services or repositories):
 
     1. TodoTitle must not be blank (enforced by TodoTitle value object).
-    2. TodoTitle must not exceed 500 characters (enforced by TodoTitle).
+    2. TodoTitle must not exceed TODO_TITLE_MAX_LENGTH characters (enforced by TodoTitle).
     3. complete() on an already-completed Todo is idempotent — no event emitted.
     4. reopen() on an already-active Todo is idempotent — no event emitted.
     5. A Todo cannot be created without a TodoTitle (factory signature enforces this).
