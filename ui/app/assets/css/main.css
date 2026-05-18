@@ -1,0 +1,105 @@
+/*
+ * Global styles for the Todo UI.
+ *
+ * @nuxt/ui brings Tailwind CSS 4 automatically; this file extends it
+ * with application-specific typography and transition helpers.
+ */
+
+/* ── Custom properties ──────────────────────────────────────────────────── */
+
+:root {
+  --color-brand: var(--color-blue-600);
+  --todo-max-width: 42rem;
+}
+
+/* ── Base resets ────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ── Smooth focus rings ─────────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--color-blue-500);
+  outline-offset: 2px;
+}
+
+/* ── Todo title Markdown rendering ──────────────────────────────────────── */
+
+.todo-title {
+  line-height: 1.5;
+}
+
+.todo-title strong,
+.todo-title b {
+  font-weight: 600;
+}
+
+.todo-title em,
+.todo-title i {
+  font-style: italic;
+}
+
+.todo-title code {
+  font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
+  font-size: 0.875em;
+  background-color: var(--color-gray-100);
+  padding: 0.1em 0.3em;
+  border-radius: 0.25rem;
+}
+
+.dark .todo-title code {
+  background-color: var(--color-gray-800);
+}
+
+.todo-title del,
+.todo-title s {
+  opacity: 0.7;
+}
+
+.todo-title a {
+  color: var(--color-blue-600);
+  text-decoration: underline;
+}
+
+.dark .todo-title a {
+  color: var(--color-blue-400);
+}
+
+/* Completed todo title — muted + line-through */
+.todo-title--completed {
+  color: var(--color-gray-400);
+  text-decoration: line-through;
+}
+
+.dark .todo-title--completed {
+  color: var(--color-gray-500);
+}
+
+/* ── Transition helpers ──────────────────────────────────────────────────── */
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
