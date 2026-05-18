@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50:  oklch(0.972 0.015 270);
+  --color-brand-100: oklch(0.941 0.030 270);
+  --color-brand-200: oklch(0.886 0.063 270);
+  --color-brand-300: oklch(0.818 0.101 270);
+  --color-brand-400: oklch(0.726 0.147 270);
+  --color-brand-500: oklch(0.628 0.183 270);
+  --color-brand-600: oklch(0.541 0.194 270);
+  --color-brand-700: oklch(0.447 0.174 270);
+  --color-brand-800: oklch(0.366 0.143 270);
+  --color-brand-900: oklch(0.297 0.110 270);
+}
+
+/* Focus ring */
+@layer base {
+  *:focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+}
+
+/* Prose reset for markdown in todo items */
+@layer utilities {
+  .todo-markdown p {
+    display: inline;
+  }
+
+  .todo-markdown a {
+    color: var(--color-brand-600);
+    text-decoration: underline;
+  }
+
+  .todo-markdown code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.875em;
+    background-color: oklch(0.95 0 0);
+    padding: 0.1em 0.3em;
+    border-radius: 0.2em;
+  }
+
+  .todo-markdown strong {
+    font-weight: 600;
+  }
+
+  .todo-markdown em {
+    font-style: italic;
+  }
+
+  .todo-markdown del {
+    text-decoration: line-through;
+  }
+}

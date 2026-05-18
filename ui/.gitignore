@@ -1,0 +1,27 @@
+# Nuxt build output
+.nuxt
+.output
+dist
+.nitro
+
+# Node modules
+node_modules
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Editor
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage
