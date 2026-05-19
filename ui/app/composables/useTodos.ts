@@ -239,6 +239,25 @@ export function useTodos() {
     filterCriteria.value = criteria
   }
 
+  // ── New-todo input ─────────────────────────────────────────────────────────
+
+  /** Reactive value bound to the new-todo text field. */
+  const newTodoTitle = ref('')
+
+  /**
+   * Keyboard handler for the new-todo input.
+   * - Enter: submit (create todo, clear input on success)
+   * - Escape: clear input without making any API call
+   */
+  async function handleNewTodoKeydown(event: KeyboardEvent): Promise<void> {
+    if (event.key === 'Enter') {
+      const submitted = await createTodo(newTodoTitle.value)
+      if (submitted) newTodoTitle.value = ''
+    } else if (event.key === 'Escape') {
+      newTodoTitle.value = ''
+    }
+  }
+
   // ── Exposed API ────────────────────────────────────────────────────────────
 
   return {
@@ -247,6 +266,7 @@ export function useTodos() {
     filterCriteria,
     editingTodoId,
     errors,
+    newTodoTitle,
     // Derived
     filteredTodos,
     counts,
@@ -261,5 +281,6 @@ export function useTodos() {
     clearCompleted,
     setFilter,
     dismissError,
+    handleNewTodoKeydown,
   }
 }

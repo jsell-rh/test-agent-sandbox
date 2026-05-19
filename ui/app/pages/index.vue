@@ -21,8 +21,8 @@ const {
   errors,
   filteredTodos,
   counts,
+  newTodoTitle,
   loadTodos,
-  createTodo,
   toggleTodo,
   deleteTodo,
   submitEdit,
@@ -31,19 +31,8 @@ const {
   clearCompleted,
   setFilter,
   dismissError,
+  handleNewTodoKeydown,
 } = useTodos()
-
-// ── New-todo input ───────────────────────────────────────────────────────────
-const newTodoTitle = ref('')
-
-async function handleNewTodoKeydown(event: KeyboardEvent): Promise<void> {
-  if (event.key === 'Enter') {
-    const submitted = await createTodo(newTodoTitle.value)
-    if (submitted) newTodoTitle.value = ''
-  } else if (event.key === 'Escape') {
-    newTodoTitle.value = ''
-  }
-}
 
 // ── Filter label helpers ─────────────────────────────────────────────────────
 const FILTER_LABELS: Record<FilterCriteria, string> = {
