@@ -62,3 +62,12 @@ class TodoRepository(ABC):
         Returns:
             A dict with keys 'all', 'active', 'completed'.
         """
+
+    @abstractmethod
+    def delete_completed(self) -> int:
+        """
+        Permanently remove all completed Todos.
+
+        Returns:
+            The number of Todos deleted.
+        """
