@@ -11,3 +11,10 @@ build/
 .venv/
 venv/
 *.db
+
+# Nuxt / Node.js
+ui/node_modules/
+ui/.nuxt/
+ui/.output/
+ui/.nitro/
+ui/dist/
