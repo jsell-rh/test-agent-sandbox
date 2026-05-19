@@ -142,14 +142,22 @@ const checkboxId = `todo-checkbox-${props.todo.id}`
         />
       </label>
 
-      <!-- Title: safe inline Markdown rendered via v-html -->
+      <!-- Title: safe inline Markdown rendered via v-html.
+           tabindex="0" + keydown handlers ensure keyboard users can enter
+           edit mode without a mouse (NFR: all actions reachable via keyboard).
+           Enter and F2 are standard "activate / edit" keys. -->
       <span
         class="
           flex-1 cursor-pointer select-none py-4 pr-4 text-lg text-gray-700
           prose prose-sm max-w-none
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300
         "
         :class="{ 'text-gray-400 line-through': todo.status === 'completed' }"
+        tabindex="0"
+        :aria-label="`${todo.title} — press Enter or F2 to edit`"
         @dblclick="$emit('startEdit')"
+        @keydown.enter.prevent="$emit('startEdit')"
+        @keydown.f2="$emit('startEdit')"
         v-html="renderInlineMarkdown(todo.title)"
       />
 
