@@ -382,6 +382,66 @@ describe('clearCompleted', () => {
 })
 
 // ---------------------------------------------------------------------------
+// handleNewTodoKeydown — spec: "Pressing Escape in the new-todo input clears
+// without creating"
+// ---------------------------------------------------------------------------
+
+describe('handleNewTodoKeydown', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  it('Escape clears newTodoTitle without making any API call', async () => {
+    const { newTodoTitle, handleNewTodoKeydown } = useTodos()
+    newTodoTitle.value = 'Some text I typed'
+
+    await handleNewTodoKeydown(new KeyboardEvent('keydown', { key: 'Escape' }))
+
+    // (1) input is empty
+    expect(newTodoTitle.value).toBe('')
+    // (2) no API call was made
+    expect($fetch).not.toHaveBeenCalled()
+  })
+
+  it('Enter submits the todo and clears the input on success', async () => {
+    const newTodo = makeTodo({ title: 'Buy milk' })
+    ;(globalThis.$fetch as ReturnType<typeof vi.fn>).mockResolvedValue(newTodo)
+
+    const { todos, newTodoTitle, handleNewTodoKeydown } = useTodos()
+    newTodoTitle.value = 'Buy milk'
+
+    await handleNewTodoKeydown(new KeyboardEvent('keydown', { key: 'Enter' }))
+
+    expect(todos.value[0].id).toBe(newTodo.id)
+    expect(newTodoTitle.value).toBe('')
+  })
+
+  it('Enter does NOT clear the input when the API call fails', async () => {
+    ;(globalThis.$fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('500 Internal Server Error'),
+    )
+
+    const { newTodoTitle, handleNewTodoKeydown } = useTodos()
+    newTodoTitle.value = 'Some todo'
+
+    await handleNewTodoKeydown(new KeyboardEvent('keydown', { key: 'Enter' }))
+
+    // Input preserved so the user can retry
+    expect(newTodoTitle.value).toBe('Some todo')
+  })
+
+  it('other keys are ignored — no API call, input unchanged', async () => {
+    const { newTodoTitle, handleNewTodoKeydown } = useTodos()
+    newTodoTitle.value = 'typing...'
+
+    await handleNewTodoKeydown(new KeyboardEvent('keydown', { key: 'Tab' }))
+
+    expect(newTodoTitle.value).toBe('typing...')
+    expect($fetch).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Failure mode: rapid duplicate toggles resolve to final server state
 // ---------------------------------------------------------------------------
 
