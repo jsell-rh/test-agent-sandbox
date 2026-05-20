@@ -16,10 +16,11 @@ import logging
 import os
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from todo.api.router import router
-from todo.api.schemas import ERROR_INTERNAL_ERROR, ErrorResponse
+from todo.api.schemas import ERROR_BAD_REQUEST, ERROR_INTERNAL_ERROR, ErrorResponse
 from todo.infrastructure.sqlite_repository import SqliteTodoRepository
 
 logger = logging.getLogger(__name__)
@@ -55,6 +56,21 @@ def create_app(database_path: str | None = None) -> FastAPI:
     # Global exception handlers — enforce the standard error envelope for
     # all unhandled errors.
     # ------------------------------------------------------------------
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        """Map FastAPI request-validation failures (malformed JSON, wrong types)
+        to the spec's standard error envelope with HTTP 400 BAD_REQUEST.
+        """
+        return JSONResponse(
+            status_code=400,
+            content=ErrorResponse(
+                error=ERROR_BAD_REQUEST,
+                message="Malformed request body or invalid field types.",
+            ).model_dump(),
+        )
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(

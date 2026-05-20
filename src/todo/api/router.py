@@ -24,7 +24,6 @@ from todo.api.schemas import (
     ERROR_INVALID_TITLE,
     ERROR_TODO_NOT_FOUND,
     VALID_FILTER_VALUES,
-    VALID_STATUS_VALUES,
     CountsResource,
     CreateTodoRequest,
     DeleteCompletedResponse,
@@ -63,7 +62,7 @@ def get_repository(request: Request) -> TodoRepository:
     summary="List all Todos with optional FilterCriteria",
 )
 def list_todos(
-    filter: Optional[str] = Query(default="all"),
+    filter: Optional[str] = Query(default=FilterCriteria.ALL.value),
     repo: TodoRepository = Depends(get_repository),
 ) -> ListTodosResponse:
     """Return all todos, optionally filtered, plus aggregate counts over ALL todos.

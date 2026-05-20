@@ -11,9 +11,10 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 
 from todo.domain.todo import Todo
+from todo.domain.value_objects import FilterCriteria, TodoStatus
 
 # Error code constants — kept here so callers never hardcode strings.
 ERROR_TODO_NOT_FOUND = "TODO_NOT_FOUND"
@@ -21,12 +22,9 @@ ERROR_INVALID_TITLE = "INVALID_TITLE"
 ERROR_BAD_REQUEST = "BAD_REQUEST"
 ERROR_INTERNAL_ERROR = "INTERNAL_ERROR"
 
-# Valid filter parameter values (mirrors FilterCriteria without importing the enum
-# into the HTTP layer's validation path).
-VALID_FILTER_VALUES = {"all", "active", "completed"}
-
-# Valid status values for PATCH requests.
-VALID_STATUS_VALUES = {"active", "completed"}
+# Derived from the domain enums — avoids drift if the enums ever change.
+VALID_FILTER_VALUES: frozenset[str] = frozenset(c.value for c in FilterCriteria)
+VALID_STATUS_VALUES: frozenset[str] = frozenset(s.value for s in TodoStatus)
 
 
 class TodoResource(BaseModel):
