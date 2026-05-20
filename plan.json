@@ -198,12 +198,10 @@
       "status": "Verifying",
       "superseded": false,
       "reconciliation_attempts": 0,
-      "integration_attempts": 0,
+      "integration_attempts": 1,
       "redecomposition_count": 0,
       "verification_crash_count": 0,
-      "verification_handle": {
-        "id": "hyperloop/spec/354fe48970dcbb64ef64254d106bdace06e5ee37/verifier"
-      },
+      "verification_handle": null,
       "delivery_workspace_id": "delivery/354fe48970dcbb64ef64254d106bdace06e5ee37",
       "integration_summary": null,
       "integration_id": null,
@@ -347,6 +345,22 @@
           "first_timestamp": "2026-05-20T18:54:38.326608Z",
           "last_timestamp": "2026-05-20T18:54:38.326608Z",
           "message": "5 tasks created"
+        },
+        {
+          "type": "Normal",
+          "reason": "VerificationPassed",
+          "count": 1,
+          "first_timestamp": "2026-05-20T19:40:23.106784Z",
+          "last_timestamp": "2026-05-20T19:40:23.106784Z",
+          "message": "All 127 tests pass (39 API + 31 UI Playwright + 57 domain/persistence). Every interface.spec.md requirement verified against the codebase with concrete evidence.\n\nAPI Contract:\n- GET /api/todos: todos array + counts object; counts always over ALL todos; filter=all|active|completed (routes.py:109-137); invalid filter->400 (routes.py:117-123).\n- POST /api/todos: creates via Todo.create(); 201 with full resource; 422 INVALID_TITLE (routes.py:140-153).\n- GET /api/todos/:id: 200 resource or 404 TODO_NOT_FOUND (routes.py:156-165).\n- PATCH /api/todos/:id: optional title/status; title->update_title(); completed->todo.complete(); active->todo.reopen(); 200/404/422/400 (routes.py:168-205).\n- DELETE /api/todos/:id: 204 no body or 404 (routes.py:208-223).\n- DELETE /api/todos?status=completed: 200 with deletedCount (routes.py:226-248).\n- Error envelope {error, message} for all 4xx/5xx; 500->INTERNAL_ERROR via generic handler (app.py:98-106).\n- Resource fields: id (UUID v4), title, status, createdAt/updatedAt (ISO 8601 UTC via datetime.now(UTC).isoformat()).\n\nUI Application Layer:\n- SPA at GET / serving index.html; no full-page reloads.\n- Header \"todos\"; new-todo input placeholder; Enter POSTs, Escape clears, clears on success.\n- Todo list ordered newest-first (ORDER BY created_at DESC in SQL; unshift for new items).\n- Filter bar: All/Active/Completed tabs; active tab highlighted; client-side filtering (no extra requests).\n- Footer: visible only when todos exist; N item(s) left (active count); Clear completed visible only when completedCount>0.\n- Empty state message when filtered list is empty.\n- Checkbox toggle: PATCH with toggled status; optimistic update with rollback on error.\n- Double-click title -> edit mode; Enter/blur saves via PATCH; Escape cancels; empty string -> DELETE.\n- Delete button: optimistic remove with rollback on error.\n- Clear completed: DELETE /api/todos?status=completed; removes completed from local state.\n- Accessibility: labels for checkboxes (label[htmlFor]), aria-label on edit input, aria-live on error container.\n- Error display: showError() creates banner with role=alert; setTimeout 5000 auto-dismiss.\n- Optimistic UI for toggle and delete; rollback on API error.\n- Initial load via loadTodos() -> GET /api/todos.\n- Failure modes: 500 on create preserves input; 500 on toggle reverts checkbox; offline shows error and preserves list."
+        },
+        {
+          "type": "Warning",
+          "reason": "IntegrationFailed",
+          "count": 1,
+          "first_timestamp": "2026-05-20T19:40:56.603590Z",
+          "last_timestamp": "2026-05-20T19:40:56.603590Z",
+          "message": "Expecting ',' delimiter: line 1 column 1821 (char 1820)"
         }
       ]
     },
