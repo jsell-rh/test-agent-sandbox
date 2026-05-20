@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from todo.domain.errors import TodoNotFoundError
 from todo.domain.repository import TodoCounts
 from todo.domain.todo import Todo
 from todo.domain.value_objects import (
@@ -43,6 +44,8 @@ ON CONFLICT(id) DO UPDATE SET
   title      = excluded.title,
   status     = excluded.status,
   updated_at = excluded.updated_at;"""
+
+_SQL_EXISTS: str = f"SELECT 1 FROM {_TABLE} WHERE id = ? LIMIT 1;"
 
 _SQL_DELETE: str = f"DELETE FROM {_TABLE} WHERE id = ?;"
 
@@ -127,9 +130,14 @@ class SQLiteTodoRepository:
     def delete(self, id: TodoId) -> None:
         """Remove the todo identified by *id*.
 
-        Silent no-op if the row does not exist (the Application Layer has
-        already validated existence via ``find_by_id`` before calling this).
+        Raises:
+            TodoNotFoundError: If no row with the given *id* exists in the
+                database.  This enforces the spec failure mode: "Delete a
+                non-existent TodoId → TodoNotFoundError thrown by Repository."
         """
+        exists = self._conn.execute(_SQL_EXISTS, (id.value,)).fetchone()
+        if exists is None:
+            raise TodoNotFoundError(f"Todo not found: {id.value!r}")
         self._conn.execute(_SQL_DELETE, (id.value,))
         self._conn.commit()
 
