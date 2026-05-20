@@ -8,6 +8,7 @@ TodoTitle invariants
   - 500-character string is valid (boundary)
   - 501-character string raises InvalidTitleError (boundary + 1)
   - Leading/trailing whitespace is trimmed before validation and storage
+  - Trimming happens before length validation
 
 TodoId
   - Generated id is a valid UUID v4 string
@@ -76,6 +77,12 @@ class TestTodoTitle:
         with pytest.raises(InvalidTitleError):
             TodoTitle("x" * 501)
 
+    # --- acceptance --------------------------------------------------------
+
+    def test_normal_string_is_accepted(self) -> None:
+        title = TodoTitle("Buy milk")
+        assert title.value == "Buy milk"
+
     # --- trimming ----------------------------------------------------------
 
     def test_leading_whitespace_is_trimmed(self) -> None:
@@ -90,8 +97,18 @@ class TestTodoTitle:
         title = TodoTitle("  Buy milk  ")
         assert title.value == "Buy milk"
 
+    def test_trimming_happens_before_length_validation(self) -> None:
+        """A string that is valid after trimming must not be rejected.
+
+        A raw string of (MAX + 2) chars with one leading and one trailing
+        space trims to exactly MAX chars — it must be accepted.
+        """
+        padded = " " + "x" * TODO_TITLE_MAX_LENGTH + " "
+        title = TodoTitle(padded)
+        assert len(title.value) == TODO_TITLE_MAX_LENGTH
+
     def test_trimmed_length_must_not_exceed_max(self) -> None:
-        """A string whose trimmed length is 501 chars is still rejected."""
+        """A string whose trimmed length is MAX+1 chars is still rejected."""
         with pytest.raises(InvalidTitleError):
             TodoTitle("  " + "a" * (TODO_TITLE_MAX_LENGTH + 1) + "  ")
 
@@ -106,6 +123,9 @@ class TestTodoTitle:
         a = TodoTitle("Buy milk")
         b = TodoTitle("Buy milk")
         assert a == b
+
+    def test_titles_with_different_values_are_not_equal(self) -> None:
+        assert TodoTitle("Buy milk") != TodoTitle("Buy eggs")
 
     def test_case_sensitive_equality(self) -> None:
         assert TodoTitle("Buy Milk") != TodoTitle("buy milk")
