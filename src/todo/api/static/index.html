@@ -58,13 +58,16 @@
     .todo-item:hover .delete-btn { opacity: 1; }
 
     /* ---- Checkbox ---- */
+    /* The toggle label contains ONLY the visual circle (and hidden checkbox).
+       flex: 1 is removed so it does not expand to fill the row; the title
+       span (a sibling) takes up that space instead.  This prevents title
+       clicks from reaching the label and accidentally toggling the checkbox. */
     .toggle-label {
       display: flex;
       align-items: center;
-      padding: 15px 15px 15px 60px;
-      flex: 1;
+      padding: 15px 8px 15px 15px;
+      flex-shrink: 0;
       cursor: pointer;
-      gap: 12px;
     }
     .toggle-checkbox { display: none; }
     .toggle-visual {
@@ -82,13 +85,17 @@
     .todo-title {
       font-size: 24px;
       line-height: 1.4;
-      flex: 1;
+      flex: 1;           /* title fills remaining row space */
       word-break: break-word;
+      padding: 15px 8px 15px 12px;
+      cursor: text;
     }
     .todo-item.completed .todo-title {
       color: #d9d9d9;
       text-decoration: line-through;
     }
+    /* In editing mode, hide the toggle and title — only the edit input shows. */
+    .todo-item.editing .todo-title { display: none; }
 
     /* ---- Edit input ---- */
     .edit-input {
@@ -326,13 +333,16 @@ function render() {
     visual.className = 'toggle-visual';
     visual.setAttribute('aria-hidden', 'true');
 
+    // The label contains ONLY the toggle control (checkbox + visual circle).
+    // The title span is a sibling so that clicks on the title do not bubble
+    // up to the label and toggle the checkbox (which would interfere with
+    // the double-click-to-edit interaction).
+    label.appendChild(checkbox);
+    label.appendChild(visual);
+
     const titleSpan = document.createElement('span');
     titleSpan.className = 'todo-title';
     titleSpan.textContent = todo.title;
-
-    label.appendChild(checkbox);
-    label.appendChild(visual);
-    label.appendChild(titleSpan);
 
     // Edit input (shown only in editing mode)
     const editInput = document.createElement('input');
@@ -353,6 +363,7 @@ function render() {
     delBtn.title = 'Delete';
 
     li.appendChild(label);
+    li.appendChild(titleSpan);
     li.appendChild(editInput);
     li.appendChild(delBtn);
     list.appendChild(li);
