@@ -121,8 +121,7 @@ class TestListTodos:
         resp = client.get(base_url, params={"filter": "bogus"})
         assert resp.status_code == 400
         body = resp.json()
-        # FastAPI wraps HTTPException detail in a 'detail' key
-        assert body["detail"]["error"] == ERROR_BAD_REQUEST
+        assert body["error"] == ERROR_BAD_REQUEST
 
     def test_todos_ordered_newest_first(self, client: TestClient, base_url: str) -> None:
         """Todos are returned with newest (latest createdAt) first."""
@@ -167,7 +166,7 @@ class TestCreateTodo:
         """Empty title returns 422 with error: INVALID_TITLE."""
         resp = client.post(base_url, json={"title": ""})
         assert resp.status_code == 422
-        assert resp.json()["detail"]["error"] == ERROR_INVALID_TITLE
+        assert resp.json()["error"] == ERROR_INVALID_TITLE
 
     def test_whitespace_only_title_returns_422(
         self, client: TestClient, base_url: str
@@ -175,7 +174,7 @@ class TestCreateTodo:
         """Whitespace-only title triggers InvalidTitleError -> 422."""
         resp = client.post(base_url, json={"title": "   "})
         assert resp.status_code == 422
-        assert resp.json()["detail"]["error"] == ERROR_INVALID_TITLE
+        assert resp.json()["error"] == ERROR_INVALID_TITLE
 
     def test_title_at_max_length_is_accepted(
         self, client: TestClient, base_url: str
@@ -190,7 +189,7 @@ class TestCreateTodo:
         """Title of 501 characters returns 422."""
         resp = client.post(base_url, json={"title": "x" * 501})
         assert resp.status_code == 422
-        assert resp.json()["detail"]["error"] == ERROR_INVALID_TITLE
+        assert resp.json()["error"] == ERROR_INVALID_TITLE
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +210,7 @@ class TestGetTodo:
         """Unknown TodoId returns 404 TODO_NOT_FOUND."""
         resp = client.get(f"{base_url}/{uuid.uuid4()}")
         assert resp.status_code == 404
-        assert resp.json()["detail"]["error"] == ERROR_TODO_NOT_FOUND
+        assert resp.json()["error"] == ERROR_TODO_NOT_FOUND
 
 
 # ---------------------------------------------------------------------------
@@ -259,14 +258,14 @@ class TestPatchTodo:
             f"{base_url}/{uuid.uuid4()}", json={"status": "completed"}
         )
         assert resp.status_code == 404
-        assert resp.json()["detail"]["error"] == ERROR_TODO_NOT_FOUND
+        assert resp.json()["error"] == ERROR_TODO_NOT_FOUND
 
     def test_invalid_title_returns_422(self, client: TestClient, base_url: str) -> None:
         """Invalid new title returns 422 INVALID_TITLE."""
         todo = _create_todo(client, base_url, "Original")
         resp = client.patch(f"{base_url}/{todo['id']}", json={"title": ""})
         assert resp.status_code == 422
-        assert resp.json()["detail"]["error"] == ERROR_INVALID_TITLE
+        assert resp.json()["error"] == ERROR_INVALID_TITLE
 
     def test_patch_title_only(self, client: TestClient, base_url: str) -> None:
         """PATCH with only title updates title and leaves status unchanged."""
@@ -319,7 +318,7 @@ class TestDeleteTodo:
         """Unknown id returns 404 TODO_NOT_FOUND."""
         resp = client.delete(f"{base_url}/{uuid.uuid4()}")
         assert resp.status_code == 404
-        assert resp.json()["detail"]["error"] == ERROR_TODO_NOT_FOUND
+        assert resp.json()["error"] == ERROR_TODO_NOT_FOUND
 
     def test_deleted_todo_is_gone(self, client: TestClient, base_url: str) -> None:
         """After deleting, fetching the same id returns 404."""
@@ -379,7 +378,7 @@ class TestDeleteCompleted:
         """DELETE /api/todos without ?status=completed returns 400."""
         resp = client.delete(base_url)
         assert resp.status_code == 400
-        assert resp.json()["detail"]["error"] == ERROR_BAD_REQUEST
+        assert resp.json()["error"] == ERROR_BAD_REQUEST
 
     def test_wrong_status_value_returns_400(
         self, client: TestClient, base_url: str
@@ -387,7 +386,7 @@ class TestDeleteCompleted:
         """DELETE /api/todos?status=active returns 400 (only 'completed' is valid here)."""
         resp = client.delete(base_url, params={"status": "active"})
         assert resp.status_code == 400
-        assert resp.json()["detail"]["error"] == ERROR_BAD_REQUEST
+        assert resp.json()["error"] == ERROR_BAD_REQUEST
 
 
 # ---------------------------------------------------------------------------

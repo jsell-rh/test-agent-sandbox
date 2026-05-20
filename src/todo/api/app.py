@@ -16,7 +16,7 @@ import logging
 import os
 
 from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 
 from todo.api.router import router
@@ -56,6 +56,29 @@ def create_app(database_path: str | None = None) -> FastAPI:
     # Global exception handlers — enforce the standard error envelope for
     # all unhandled errors.
     # ------------------------------------------------------------------
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(
+        request: Request, exc: HTTPException
+    ) -> JSONResponse:
+        """Return the spec's standard error envelope for all HTTPException raises.
+
+        FastAPI's default HTTPException handler wraps the detail in
+        ``{"detail": ...}``.  This handler ensures the envelope is returned
+        at the top level: ``{"error": "...", "message": "..."}``.
+
+        The router always passes an ``ErrorResponse`` dict as ``exc.detail``.
+        If a non-dict detail is received (e.g. from a third-party middleware),
+        it is wrapped in a generic BAD_REQUEST envelope.
+        """
+        if isinstance(exc.detail, dict) and "error" in exc.detail:
+            content = exc.detail
+        else:
+            content = ErrorResponse(
+                error=ERROR_BAD_REQUEST,
+                message=str(exc.detail),
+            ).model_dump()
+        return JSONResponse(status_code=exc.status_code, content=content)
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
