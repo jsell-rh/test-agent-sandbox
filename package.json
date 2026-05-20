@@ -1,0 +1,27 @@
+{
+  "name": "todo-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxt/ui": "^4.7.1",
+    "marked": "^15.0.12",
+    "nuxt": "^4.4.6"
+  },
+  "devDependencies": {
+    "@nuxt/test-utils": "^4.0.3",
+    "@vue/test-utils": "^2.4.10",
+    "happy-dom": "^20.9.0",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.6"
+  }
+}
