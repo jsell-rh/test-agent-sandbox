@@ -1,27 +1,2 @@
-base_branch: main
-repo: jsell-rh/test-agent-sandbox
-max_cycles: 9999999
-runtime: local
-max_workers: 5
-ambient:                     # required when runtime: ambient                                                                                            
-  project_id: test-hyperloop                                                                                                                         
-  acpctl: /home/jsell/bin/acpctl    
-  repo_url: https://github.com/jsell-rh/test-agent-sandbox  
-          # path to acpctl binary      
-
-merge:
-  auto_merge: true
-  strategy: squash
-
-observability:
-  log_level: debug 
-  matrix:
-    homeserver: https://matrix.jsksell.com
-    registration_token_env: MATRIX_ACCESS_TOKEN
-    invite_user: "@jsell:matrix.jsksell.com"
-    verbose: true
-
-notifications:
-  type: github-comment     
-
-dashboard: { enabled: true }
+trunk_branch: test-new-loop
+integration_strategy: pr_automerge
