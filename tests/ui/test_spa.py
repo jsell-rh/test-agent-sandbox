@@ -644,6 +644,44 @@ class TestFailureModes:
         # The item should have reverted (not completed).
         expect(item).not_to_have_class(re.compile(_CLASS_COMPLETED))
 
+    def test_offline_shows_error_and_preserves_loaded_list(
+        self, spa: Page
+    ) -> None:
+        """Spec: when the network is offline, pending actions surface an error
+        and the previously loaded list remains visible.
+
+        Playwright's ``context.set_offline(True)`` simulates a fully offline
+        browser; all outbound TCP connections (including to localhost) are
+        blocked.  ``apiFetch`` catches the resulting network error and returns
+        a synthetic 503 response so the SPA's existing error-display path
+        fires without the UI state being cleared.
+        """
+        # Load a todo while online so the list is populated.
+        _add_todo(spa, "Pre-loaded task")
+        expect(spa.locator(_SEL_TODO_ITEM)).to_have_count(1)
+
+        # Simulate the browser going offline.
+        spa.context.set_offline(True)
+        try:
+            inp = spa.locator(_SEL_NEW_TODO)
+            inp.fill("Offline task")
+            inp.press("Enter")
+
+            # An error banner must appear (non-blocking inline message).
+            spa.locator(_SEL_ERROR_BANNER).wait_for()
+
+            # The input is NOT cleared — the user can retry.
+            expect(inp).to_have_value("Offline task")
+
+            # The previously loaded list is still fully visible.
+            expect(spa.locator(_SEL_TODO_ITEM)).to_have_count(1)
+            expect(
+                spa.locator(f"{_SEL_TODO_ITEM} {_SEL_TODO_TITLE}").first
+            ).to_have_text("Pre-loaded task")
+        finally:
+            # Always restore connectivity so subsequent tests are not affected.
+            spa.context.set_offline(False)
+
 
 # ---------------------------------------------------------------------------
 # Empty state
