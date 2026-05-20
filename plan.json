@@ -281,11 +281,9 @@
           "description": "Build the single-page browser application defined in interface.spec.md UI Application Layer section. No full-page reloads after initial load. Required components: Header (title 'todos'); New Todo Input (placeholder 'What needs to be done?', Enter key calls POST /api/todos, clears on success); Todo List (ordered createdAt descending, newest first); Filter Bar (All/Active/Completed tabs, active tab highlighted, client-side filter over todos[]); Footer Bar (visible only when at least one todo exists, showing '{N} item(s) left' active count, filter tabs, and 'Clear completed' button visible only when completedCount > 0); Empty State message when filtered list is empty; Todo Item Component (checkbox toggles status via PATCH, title double-click enters edit mode, delete button visible on hover calls DELETE). Edit mode: input pre-filled with current title, Enter or blur submits PATCH, Escape cancels, empty string submission calls DELETE. State machine: FilterCriteria, editingTodoId, todos[] as source of truth from API. Non-functional: optimistic UI for toggle and delete with rollback on API error; full list loaded on page load; accessibility labels; keyboard navigation; inline API error messages auto-dismissed after 5s.",
           "created_at": "2026-05-20T18:54:38.326227Z",
           "retry_count": 0,
-          "agent_handle": {
-            "id": "hyperloop/spec/354fe48970dcbb64ef64254d106bdace06e5ee37/task/4"
-          },
+          "agent_handle": null,
           "workspace_id": "task/354fe48970dcbb64ef64254d106bdace06e5ee37/4",
-          "status": "InProgress",
+          "status": "Complete",
           "events": [
             {
               "type": "Normal",
@@ -294,6 +292,14 @@
               "first_timestamp": "2026-05-20T19:05:02.951472Z",
               "last_timestamp": "2026-05-20T19:05:02.951472Z",
               "message": "Dispatched (attempt 1)"
+            },
+            {
+              "type": "Normal",
+              "reason": "TaskCompleted",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:27:40.635287Z",
+              "last_timestamp": "2026-05-20T19:27:40.635287Z",
+              "message": "Task completed and merged"
             }
           ]
         },
