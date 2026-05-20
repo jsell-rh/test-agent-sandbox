@@ -164,18 +164,19 @@
       "path": "specs/persistence.spec.md",
       "blob_sha": "ec2444e0637708deb0f6f7ec83cfb4bf82252503",
       "created_at": "2026-05-20T18:52:37.336006Z",
-      "status": "Verifying",
+      "status": "PendingIntegration",
       "superseded": false,
       "reconciliation_attempts": 0,
       "integration_attempts": 0,
       "redecomposition_count": 0,
       "verification_crash_count": 0,
-      "verification_handle": {
-        "id": "hyperloop/spec/ec2444e0637708deb0f6f7ec83cfb4bf82252503/verifier"
-      },
+      "verification_handle": null,
       "delivery_workspace_id": "delivery/ec2444e0637708deb0f6f7ec83cfb4bf82252503",
-      "integration_summary": null,
-      "integration_id": null,
+      "integration_summary": {
+        "title": "feat: implement SQLite persistence layer for TODO application",
+        "body": "## Summary\n\nImplements the `TodoRepository` interface against SQLite, completing the Infrastructure / Persistence bounded context for the TODO application. The Domain and Application layers are unchanged — this is a pure infrastructure addition.\n\n## What Changed\n\n### Schema\n- `todos` table with `id` (TEXT/UUID), `title` (TEXT), `status` (TEXT with `CHECK (status IN (\\u2019active\\u2019, \\u2019completed\\u2019))`), `created_at`, and `updated_at` (ISO 8601 UTC).\n- Two indexes: `idx_todos_status` for filtered queries and `idx_todos_created_at DESC` for default ordering.\n- Hard deletes only — no soft-delete column.\n\n### Repository Contract\n- **`find_by_id`**: Returns `None` (not an error) for unknown IDs; reconstitutes via `Todo.reconstitute()` to suppress Domain Event emission.\n- **`find_all`**: Supports `all` / `active` / `completed` filters; ordered by `created_at DESC`.\n- **`save`**: UPSERT via `INSERT … ON CONFLICT(id) DO UPDATE`; `created_at` is never overwritten on update.\n- **`delete`**: Silent no-op when ID is absent (Application Layer pre-validates existence).\n- **`counts`**: Single aggregate query (`COUNT` + `SUM(CASE)`) used to populate list response metadata without a second round-trip.\n\n### Migrations\n- Versioned SQL files tracked in a `schema_migrations` table (`version`, `applied_at`).\n- `001_create_todos.sql` is the initial migration; runner is idempotent and blocks startup until all migrations are applied.\n\n### Connection Management\n- SQLite file path read from `DATABASE_PATH` env var (default `./todos.db`, with a startup warning when unset).\n- WAL mode (`PRAGMA journal_mode=WAL`) and 5 s busy timeout (`PRAGMA busy_timeout=5000`) enabled at connection open.\n- Test environments use `DATABASE_PATH=:memory:` for per-suite isolation.\n\n### Error Handling\n- `DatabaseInitError` raised on connection failure before the server accepts requests.\n- `PersistenceError` wraps `IntegrityError` from SQLite (e.g., CHECK constraint violation on `status`).\n\n## Why\n\nThe Domain model and Application Layer were complete but had no durable backing store. This layer wires them to SQLite with zero ORM overhead, satisfying the raw-SQL and portability requirements. Swapping to PostgreSQL later requires only a new `TodoRepository` implementation — no Domain or Application Layer changes.\n\n## Test Coverage\n\n57 / 57 tests pass, covering: insert + upsert round-trips, filter combinations, ordering, `created_at` immutability on update, silent delete of missing IDs, empty-store `counts`, idempotent migration runs, and all specified failure modes (bad path, constraint violation, missing env var)."
+      },
+      "integration_id": "noop:ec2444e0637708deb0f6f7ec83cfb4bf82252503",
       "tasks": [],
       "events": [
         {
@@ -185,6 +186,22 @@
           "first_timestamp": "2026-05-20T18:54:38.326614Z",
           "last_timestamp": "2026-05-20T18:54:38.326614Z",
           "message": "5 tasks created"
+        },
+        {
+          "type": "Normal",
+          "reason": "VerificationPassed",
+          "count": 1,
+          "first_timestamp": "2026-05-20T18:59:57.399269Z",
+          "last_timestamp": "2026-05-20T18:59:57.399269Z",
+          "message": "All persistence spec requirements satisfied; 57/57 tests pass.\n\nSchema: 001_create_todos.sql matches spec exactly — todos table with correct\ncolumns/types/constraints, CHECK(status IN ('active','completed')), both\nrequired indexes (idx_todos_status, idx_todos_created_at DESC).\n\nMapping: save() correctly maps all five domain fields to columns; _row_to_todo()\ncalls Todo.reconstitute() for event-free reconstitution; TodoTitle re-validates\non read.\n\nRepository contract: find_by_id (returns None, not error, for missing id),\nfind_all (all/active/completed filters, created_at DESC ordering), save (UPSERT\nwith created_at excluded from DO UPDATE), delete (silent no-op on missing id),\ncounts (single aggregate query with COUNT/SUM(CASE)).\n\nMigration strategy: schema_migrations table with version+applied_at, idempotent\nrunner, version 1 recorded on first apply only.\n\nConnection management: DATABASE_PATH env var → ./todos.db fallback with warning,\nPRAGMA journal_mode=WAL, PRAGMA busy_timeout=5000.\n\nError types: DatabaseInitError on connection failure, PersistenceError wrapping\nIntegrityError on save.\n\nNon-functional: raw SQL (no ORM), per-test in-memory DB isolation."
+        },
+        {
+          "type": "Normal",
+          "reason": "IntegrationSubmitted",
+          "count": 1,
+          "first_timestamp": "2026-05-20T19:00:36.853520Z",
+          "last_timestamp": "2026-05-20T19:00:36.853520Z",
+          "message": "Integration submitted: noop:ec2444e0637708deb0f6f7ec83cfb4bf82252503"
         }
       ]
     }
