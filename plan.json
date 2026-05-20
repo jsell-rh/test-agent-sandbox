@@ -165,11 +165,9 @@
           "description": "Implement the REST/JSON API defined in interface.spec.md. Create an HTTP application (e.g. FastAPI or similar) with base path /api/todos. Endpoints required: GET /api/todos (with optional ?filter=all|active|completed query param, returning todos[] and counts{}); POST /api/todos (201 on success, 422 with INVALID_TITLE error envelope on InvalidTitleError); GET /api/todos/:id (200 or 404 TODO_NOT_FOUND); PATCH /api/todos/:id (partial update of title and/or status, mapping status to todo.complete()/todo.reopen(), returning 200/404/422); DELETE /api/todos/:id (204 or 404); DELETE /api/todos?status=completed (bulk delete completed, returns {deletedCount}). All 4xx/5xx must use the error envelope {error, message}. Wire up SQLiteTodoRepository via dependency injection. Run migrations on startup before accepting requests.",
           "created_at": "2026-05-20T18:54:38.326202Z",
           "retry_count": 0,
-          "agent_handle": {
-            "id": "hyperloop/spec/354fe48970dcbb64ef64254d106bdace06e5ee37/task/2"
-          },
+          "agent_handle": null,
           "workspace_id": "task/354fe48970dcbb64ef64254d106bdace06e5ee37/2",
-          "status": "InProgress",
+          "status": "Complete",
           "events": [
             {
               "type": "Normal",
@@ -178,6 +176,14 @@
               "first_timestamp": "2026-05-20T18:54:42.487706Z",
               "last_timestamp": "2026-05-20T18:54:42.487706Z",
               "message": "Dispatched (attempt 1)"
+            },
+            {
+              "type": "Normal",
+              "reason": "TaskCompleted",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:04:29.179657Z",
+              "last_timestamp": "2026-05-20T19:04:29.179657Z",
+              "message": "Task completed and merged"
             }
           ]
         },
