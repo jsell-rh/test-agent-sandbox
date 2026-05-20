@@ -314,10 +314,21 @@
           "description": "Write UI tests per interface.spec.md TDD Plan (UI section). Required test scenarios: entering a title and pressing Enter creates a new item at the top of the list; pressing Escape in new-todo input clears without creating; double-clicking a title enters edit mode for only that item; pressing Escape in edit mode restores original title without API call; submitting blank title in edit mode deletes the item; 'Clear completed' button only visible when completedCount > 0; '{N} item(s) left' reflects current active count after toggling; filter tabs correctly show/hide items without an additional network request. Failure modes: API 500 on create leaves input unchanged and shows error; API 500 on toggle reverts checkbox (optimistic rollback); offline state shows error and keeps previously loaded list visible.",
           "created_at": "2026-05-20T18:54:38.326236Z",
           "retry_count": 0,
-          "agent_handle": null,
-          "workspace_id": null,
-          "status": "Backlog",
-          "events": []
+          "agent_handle": {
+            "id": "hyperloop/spec/354fe48970dcbb64ef64254d106bdace06e5ee37/task/5"
+          },
+          "workspace_id": "task/354fe48970dcbb64ef64254d106bdace06e5ee37/5",
+          "status": "InProgress",
+          "events": [
+            {
+              "type": "Normal",
+              "reason": "TaskDispatched",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:28:13.212393Z",
+              "last_timestamp": "2026-05-20T19:28:13.212393Z",
+              "message": "Dispatched (attempt 1)"
+            }
+          ]
         }
       ],
       "events": [
