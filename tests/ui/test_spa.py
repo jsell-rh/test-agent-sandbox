@@ -587,8 +587,10 @@ class TestFailureModes:
     ) -> None:
         """When POST /api/todos returns 500: error shown, input not cleared."""
         # Intercept the POST to simulate a server error.
+        # Pattern "**/api/todos" matches the list endpoint URL exactly
+        # (no trailing path segment), so individual-todo PATCHes are unaffected.
         spa.route(
-            f"**{live_server.base_url.split('127.0.0.1')[1]}/api/todos",
+            "**/api/todos",
             lambda route: (
                 route.fulfill(
                     status=500,
