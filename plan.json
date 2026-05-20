@@ -4,15 +4,13 @@
       "path": "specs/domain-model.spec.md",
       "blob_sha": "ca029b4be9363685cac98b934375b4472b229ec4",
       "created_at": "2026-05-20T18:52:37.335879Z",
-      "status": "Verifying",
+      "status": "OutOfSync",
       "superseded": false,
-      "reconciliation_attempts": 0,
+      "reconciliation_attempts": 1,
       "integration_attempts": 0,
       "redecomposition_count": 0,
       "verification_crash_count": 0,
-      "verification_handle": {
-        "id": "hyperloop/spec/ca029b4be9363685cac98b934375b4472b229ec4/verifier"
-      },
+      "verification_handle": null,
       "delivery_workspace_id": "delivery/ca029b4be9363685cac98b934375b4472b229ec4",
       "integration_summary": null,
       "integration_id": null,
@@ -57,6 +55,14 @@
           "first_timestamp": "2026-05-20T18:54:38.326553Z",
           "last_timestamp": "2026-05-20T18:54:38.326553Z",
           "message": "5 tasks created"
+        },
+        {
+          "type": "Warning",
+          "reason": "VerificationFailed",
+          "count": 1,
+          "first_timestamp": "2026-05-20T19:01:08.854004Z",
+          "last_timestamp": "2026-05-20T19:01:08.854004Z",
+          "message": "FAIL: 2 requirements unmet in domain-model spec\n\nFAILURE 1 — Missing domain model tests (tests/domain/ is empty):\nThe TDD Plan mandates 19 specific test cases. The tests/domain/ directory\ncontains only an empty __init__.py. No test exercises any of the following:\n  - TodoTitle: blank → InvalidTitleError (spec line 178)\n  - TodoTitle: whitespace-only → InvalidTitleError (spec line 179)\n  - TodoTitle: 500-char string is valid (spec line 180)\n  - TodoTitle: 501-char string → InvalidTitleError (spec line 181)\n  - TodoTitle: leading/trailing whitespace trimmed (spec line 182)\n  - Todo.create(): returns status active (spec line 185)\n  - Todo.create(): assigns non-null TodoId (spec line 186)\n  - Todo.create(): emits exactly one TodoCreated event (spec line 187)\n  - Todo.create(): raises InvalidTitleError for invalid title (spec line 188)\n  - todo.complete(): active→completed transition + event (spec line 191)\n  - todo.complete(): idempotent on already-completed, no event (spec line 192)\n  - todo.reopen(): completed→active transition + event (spec line 195)\n  - todo.reopen(): idempotent on already-active, no event (spec line 196)\n  - todo.updateTitle(): updates title, emits TodoTitleUpdated (spec line 199)\n  - todo.updateTitle(): raises InvalidTitleError for invalid title (spec line 200)\n  - Failure mode: empty title → InvalidTitleError before persistence (spec line 206)\n  - Failure mode: whitespace title update → error, original unchanged (spec line 207)\n  - Failure mode: complete already-completed → no duplicate event (spec line 208)\n  - Failure mode: delete non-existent TodoId → TodoNotFoundError (spec line 209)\nThe persistence tests incidentally call domain methods but do not assert any\nof these behavioral invariants.\n\nFAILURE 2 — Repository.delete() silently ignores non-existent TodoId:\nSpec failure mode (line 209): \"Delete a non-existent TodoId →\nTodoNotFoundError thrown by Repository.\"\nImplementation (src/todo/persistence/repository.py:127-133): delete() issues\nDELETE SQL and commits with no existence check and no exception raised.\nDocstring explicitly states \"Silent no-op if the row does not exist.\"\nTest test_delete_non_existent_id_does_not_raise (test_repository.py:367-372)\nasserts the opposite of the spec requirement.\n\nCorrective tasks needed:\n  Task A: Create tests/domain/test_value_objects.py with all TodoTitle cases.\n  Task B: Create tests/domain/test_todo.py with all Todo aggregate cases.\n  Task C: Update SQLiteTodoRepository.delete() to raise TodoNotFoundError\n          when the given TodoId does not exist in the database, and add a\n          corresponding test that expects the exception."
         }
       ]
     },
@@ -164,7 +170,7 @@
       "path": "specs/persistence.spec.md",
       "blob_sha": "ec2444e0637708deb0f6f7ec83cfb4bf82252503",
       "created_at": "2026-05-20T18:52:37.336006Z",
-      "status": "PendingIntegration",
+      "status": "Synced",
       "superseded": false,
       "reconciliation_attempts": 0,
       "integration_attempts": 0,
@@ -172,11 +178,8 @@
       "verification_crash_count": 0,
       "verification_handle": null,
       "delivery_workspace_id": "delivery/ec2444e0637708deb0f6f7ec83cfb4bf82252503",
-      "integration_summary": {
-        "title": "feat: implement SQLite persistence layer for TODO application",
-        "body": "## Summary\n\nImplements the `TodoRepository` interface against SQLite, completing the Infrastructure / Persistence bounded context for the TODO application. The Domain and Application layers are unchanged — this is a pure infrastructure addition.\n\n## What Changed\n\n### Schema\n- `todos` table with `id` (TEXT/UUID), `title` (TEXT), `status` (TEXT with `CHECK (status IN (\\u2019active\\u2019, \\u2019completed\\u2019))`), `created_at`, and `updated_at` (ISO 8601 UTC).\n- Two indexes: `idx_todos_status` for filtered queries and `idx_todos_created_at DESC` for default ordering.\n- Hard deletes only — no soft-delete column.\n\n### Repository Contract\n- **`find_by_id`**: Returns `None` (not an error) for unknown IDs; reconstitutes via `Todo.reconstitute()` to suppress Domain Event emission.\n- **`find_all`**: Supports `all` / `active` / `completed` filters; ordered by `created_at DESC`.\n- **`save`**: UPSERT via `INSERT … ON CONFLICT(id) DO UPDATE`; `created_at` is never overwritten on update.\n- **`delete`**: Silent no-op when ID is absent (Application Layer pre-validates existence).\n- **`counts`**: Single aggregate query (`COUNT` + `SUM(CASE)`) used to populate list response metadata without a second round-trip.\n\n### Migrations\n- Versioned SQL files tracked in a `schema_migrations` table (`version`, `applied_at`).\n- `001_create_todos.sql` is the initial migration; runner is idempotent and blocks startup until all migrations are applied.\n\n### Connection Management\n- SQLite file path read from `DATABASE_PATH` env var (default `./todos.db`, with a startup warning when unset).\n- WAL mode (`PRAGMA journal_mode=WAL`) and 5 s busy timeout (`PRAGMA busy_timeout=5000`) enabled at connection open.\n- Test environments use `DATABASE_PATH=:memory:` for per-suite isolation.\n\n### Error Handling\n- `DatabaseInitError` raised on connection failure before the server accepts requests.\n- `PersistenceError` wraps `IntegrityError` from SQLite (e.g., CHECK constraint violation on `status`).\n\n## Why\n\nThe Domain model and Application Layer were complete but had no durable backing store. This layer wires them to SQLite with zero ORM overhead, satisfying the raw-SQL and portability requirements. Swapping to PostgreSQL later requires only a new `TodoRepository` implementation — no Domain or Application Layer changes.\n\n## Test Coverage\n\n57 / 57 tests pass, covering: insert + upsert round-trips, filter combinations, ordering, `created_at` immutability on update, silent delete of missing IDs, empty-store `counts`, idempotent migration runs, and all specified failure modes (bad path, constraint violation, missing env var)."
-      },
-      "integration_id": "noop:ec2444e0637708deb0f6f7ec83cfb4bf82252503",
+      "integration_summary": null,
+      "integration_id": null,
       "tasks": [],
       "events": [
         {
@@ -202,6 +205,14 @@
           "first_timestamp": "2026-05-20T19:00:36.853520Z",
           "last_timestamp": "2026-05-20T19:00:36.853520Z",
           "message": "Integration submitted: noop:ec2444e0637708deb0f6f7ec83cfb4bf82252503"
+        },
+        {
+          "type": "Normal",
+          "reason": "IntegrationMerged",
+          "count": 1,
+          "first_timestamp": "2026-05-20T19:01:09.962714Z",
+          "last_timestamp": "2026-05-20T19:01:09.962714Z",
+          "message": "Integrated to trunk (0 tasks)"
         }
       ]
     }
