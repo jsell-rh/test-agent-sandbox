@@ -245,11 +245,21 @@ function restoreTodos(snapshot) {
 // API helpers
 // ---------------------------------------------------------------------------
 async function apiFetch(path, options = {}) {
-  const res = await fetch(API_BASE + path, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  });
-  return res;
+  try {
+    const res = await fetch(API_BASE + path, {
+      headers: { 'Content-Type': 'application/json', ...options.headers },
+      ...options,
+    });
+    return res;
+  } catch (_err) {
+    // Network-level failure (offline, DNS error, connection refused, etc.).
+    // Return a synthetic 503 response so every caller's existing !res.ok
+    // branch fires: optimistic updates roll back and error banners appear.
+    return new Response(
+      JSON.stringify({ error: 'NETWORK_ERROR', message: 'Network request failed. Check your connection.' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
