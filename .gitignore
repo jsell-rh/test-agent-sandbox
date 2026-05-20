@@ -11,3 +11,10 @@ build/
 .venv/
 venv/
 *.db
+
+# Node / Nuxt
+node_modules/
+.nuxt/
+.output/
+.env
+*.local
