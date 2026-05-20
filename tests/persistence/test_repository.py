@@ -19,7 +19,7 @@ import time
 
 import pytest
 
-from todo.domain.errors import InvalidTitleError
+from todo.domain.errors import InvalidTitleError, TodoNotFoundError
 from todo.domain.events import TodoCreated
 from todo.domain.repository import TodoCounts
 from todo.domain.todo import Todo
@@ -364,12 +364,17 @@ class TestDelete:
 
         assert all(t.id != todo.id for t in repo.find_all())
 
-    def test_delete_non_existent_id_does_not_raise(
+    def test_delete_non_existent_id_raises_todo_not_found_error(
         self, repo: SQLiteTodoRepository
     ) -> None:
+        """Deleting a TodoId that does not exist must raise TodoNotFoundError.
+
+        Spec failure mode: "Delete a non-existent TodoId → TodoNotFoundError
+        thrown by Repository."
+        """
         unknown_id = TodoId.generate()
-        # Must not raise any exception.
-        repo.delete(unknown_id)
+        with pytest.raises(TodoNotFoundError):
+            repo.delete(unknown_id)
 
 
 # ---------------------------------------------------------------------------

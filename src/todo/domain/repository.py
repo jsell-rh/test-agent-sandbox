@@ -48,7 +48,8 @@ class TodoRepository(Protocol):
     def delete(self, id: TodoId) -> None:
         """Permanently remove the Todo identified by *id*.
 
-        No error if the row does not exist.
+        Raises:
+            TodoNotFoundError: If no Todo with the given *id* exists.
         """
         ...
 
