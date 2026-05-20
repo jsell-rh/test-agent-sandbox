@@ -55,11 +55,9 @@
           "description": "Create tests/domain/test_value_objects.py covering all TodoTitle invariants from the spec TDD Plan: blank string raises InvalidTitleError; whitespace-only string raises InvalidTitleError; 500-character string is valid; 501-character string raises InvalidTitleError; leading/trailing whitespace trimmed before validation. No persistence or HTTP involved.",
           "created_at": "2026-05-20T19:02:44.162442Z",
           "retry_count": 0,
-          "agent_handle": {
-            "id": "hyperloop/spec/ca029b4be9363685cac98b934375b4472b229ec4/task/6"
-          },
+          "agent_handle": null,
           "workspace_id": "task/ca029b4be9363685cac98b934375b4472b229ec4/6",
-          "status": "InProgress",
+          "status": "Complete",
           "events": [
             {
               "type": "Normal",
@@ -68,6 +66,14 @@
               "first_timestamp": "2026-05-20T19:02:45.167360Z",
               "last_timestamp": "2026-05-20T19:02:45.167360Z",
               "message": "Dispatched (attempt 1)"
+            },
+            {
+              "type": "Normal",
+              "reason": "TaskCompleted",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:06:10.203573Z",
+              "last_timestamp": "2026-05-20T19:06:10.203573Z",
+              "message": "Task completed and merged"
             }
           ]
         },
