@@ -7,12 +7,10 @@
       "status": "Verifying",
       "superseded": false,
       "reconciliation_attempts": 1,
-      "integration_attempts": 0,
+      "integration_attempts": 1,
       "redecomposition_count": 0,
       "verification_crash_count": 0,
-      "verification_handle": {
-        "id": "hyperloop/spec/ca029b4be9363685cac98b934375b4472b229ec4/verifier"
-      },
+      "verification_handle": null,
       "delivery_workspace_id": "delivery/ca029b4be9363685cac98b934375b4472b229ec4",
       "integration_summary": null,
       "integration_id": null,
@@ -158,6 +156,22 @@
           "first_timestamp": "2026-05-20T19:01:08.854004Z",
           "last_timestamp": "2026-05-20T19:01:08.854004Z",
           "message": "FAIL: 2 requirements unmet in domain-model spec\n\nFAILURE 1 — Missing domain model tests (tests/domain/ is empty):\nThe TDD Plan mandates 19 specific test cases. The tests/domain/ directory\ncontains only an empty __init__.py. No test exercises any of the following:\n  - TodoTitle: blank → InvalidTitleError (spec line 178)\n  - TodoTitle: whitespace-only → InvalidTitleError (spec line 179)\n  - TodoTitle: 500-char string is valid (spec line 180)\n  - TodoTitle: 501-char string → InvalidTitleError (spec line 181)\n  - TodoTitle: leading/trailing whitespace trimmed (spec line 182)\n  - Todo.create(): returns status active (spec line 185)\n  - Todo.create(): assigns non-null TodoId (spec line 186)\n  - Todo.create(): emits exactly one TodoCreated event (spec line 187)\n  - Todo.create(): raises InvalidTitleError for invalid title (spec line 188)\n  - todo.complete(): active→completed transition + event (spec line 191)\n  - todo.complete(): idempotent on already-completed, no event (spec line 192)\n  - todo.reopen(): completed→active transition + event (spec line 195)\n  - todo.reopen(): idempotent on already-active, no event (spec line 196)\n  - todo.updateTitle(): updates title, emits TodoTitleUpdated (spec line 199)\n  - todo.updateTitle(): raises InvalidTitleError for invalid title (spec line 200)\n  - Failure mode: empty title → InvalidTitleError before persistence (spec line 206)\n  - Failure mode: whitespace title update → error, original unchanged (spec line 207)\n  - Failure mode: complete already-completed → no duplicate event (spec line 208)\n  - Failure mode: delete non-existent TodoId → TodoNotFoundError (spec line 209)\nThe persistence tests incidentally call domain methods but do not assert any\nof these behavioral invariants.\n\nFAILURE 2 — Repository.delete() silently ignores non-existent TodoId:\nSpec failure mode (line 209): \"Delete a non-existent TodoId →\nTodoNotFoundError thrown by Repository.\"\nImplementation (src/todo/persistence/repository.py:127-133): delete() issues\nDELETE SQL and commits with no existence check and no exception raised.\nDocstring explicitly states \"Silent no-op if the row does not exist.\"\nTest test_delete_non_existent_id_does_not_raise (test_repository.py:367-372)\nasserts the opposite of the spec requirement.\n\nCorrective tasks needed:\n  Task A: Create tests/domain/test_value_objects.py with all TodoTitle cases.\n  Task B: Create tests/domain/test_todo.py with all Todo aggregate cases.\n  Task C: Update SQLiteTodoRepository.delete() to raise TodoNotFoundError\n          when the given TodoId does not exist in the database, and add a\n          corresponding test that expects the exception."
+        },
+        {
+          "type": "Normal",
+          "reason": "VerificationPassed",
+          "count": 1,
+          "first_timestamp": "2026-05-20T19:15:42.241561Z",
+          "last_timestamp": "2026-05-20T19:15:42.241561Z",
+          "message": "All domain model spec requirements satisfied; 158/158 tests pass"
+        },
+        {
+          "type": "Warning",
+          "reason": "IntegrationFailed",
+          "count": 1,
+          "first_timestamp": "2026-05-20T19:16:20.554988Z",
+          "last_timestamp": "2026-05-20T19:16:20.554988Z",
+          "message": "Expecting ',' delimiter: line 1 column 1957 (char 1956)"
         }
       ]
     },
