@@ -4,7 +4,7 @@
       "path": "specs/domain-model.spec.md",
       "blob_sha": "ca029b4be9363685cac98b934375b4472b229ec4",
       "created_at": "2026-05-20T18:52:37.335879Z",
-      "status": "OutOfSync",
+      "status": "Reconciling",
       "superseded": false,
       "reconciliation_attempts": 1,
       "integration_attempts": 0,
@@ -45,16 +45,91 @@
               "message": "Task completed and merged"
             }
           ]
+        },
+        {
+          "id": 6,
+          "depends_on": [],
+          "spec_path": "specs/domain-model.spec.md",
+          "spec_blob_sha": "ca029b4be9363685cac98b934375b4472b229ec4",
+          "name": "domain-test-value-objects",
+          "description": "Create tests/domain/test_value_objects.py covering all TodoTitle invariants from the spec TDD Plan: blank string raises InvalidTitleError; whitespace-only string raises InvalidTitleError; 500-character string is valid; 501-character string raises InvalidTitleError; leading/trailing whitespace trimmed before validation. No persistence or HTTP involved.",
+          "created_at": "2026-05-20T19:02:44.162442Z",
+          "retry_count": 0,
+          "agent_handle": {
+            "id": "hyperloop/spec/ca029b4be9363685cac98b934375b4472b229ec4/task/6"
+          },
+          "workspace_id": "task/ca029b4be9363685cac98b934375b4472b229ec4/6",
+          "status": "InProgress",
+          "events": [
+            {
+              "type": "Normal",
+              "reason": "TaskDispatched",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:02:45.167360Z",
+              "last_timestamp": "2026-05-20T19:02:45.167360Z",
+              "message": "Dispatched (attempt 1)"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "depends_on": [],
+          "spec_path": "specs/domain-model.spec.md",
+          "spec_blob_sha": "ca029b4be9363685cac98b934375b4472b229ec4",
+          "name": "domain-test-todo",
+          "description": "Create tests/domain/test_todo.py covering all Todo aggregate TDD cases: Todo.create() returns status=active, assigns non-null TodoId, emits exactly one TodoCreated event, raises InvalidTitleError on blank title; todo.complete() transitions active->completed and emits TodoCompleted, idempotent on already-completed (no event); todo.reopen() transitions completed->active and emits TodoReopened, idempotent on already-active (no event); todo.updateTitle() updates title and emits TodoTitleUpdated, raises InvalidTitleError on invalid new title; failure modes: whitespace title update leaves original title unchanged, complete already-completed produces no duplicate event. All tests use domain objects directly with no persistence or HTTP.",
+          "created_at": "2026-05-20T19:02:44.162462Z",
+          "retry_count": 0,
+          "agent_handle": {
+            "id": "hyperloop/spec/ca029b4be9363685cac98b934375b4472b229ec4/task/7"
+          },
+          "workspace_id": "task/ca029b4be9363685cac98b934375b4472b229ec4/7",
+          "status": "InProgress",
+          "events": [
+            {
+              "type": "Normal",
+              "reason": "TaskDispatched",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:02:46.252038Z",
+              "last_timestamp": "2026-05-20T19:02:46.252038Z",
+              "message": "Dispatched (attempt 1)"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "depends_on": [],
+          "spec_path": "specs/domain-model.spec.md",
+          "spec_blob_sha": "ca029b4be9363685cac98b934375b4472b229ec4",
+          "name": "fix-repository-delete",
+          "description": "Update SQLiteTodoRepository.delete() in src/todo/persistence/repository.py to raise TodoNotFoundError when the given TodoId does not exist in the database (currently a silent no-op). Remove or invert the existing test_delete_non_existent_id_does_not_raise test in tests/persistence/test_repository.py and replace it with a test that asserts TodoNotFoundError is raised for an unknown TodoId. This satisfies the spec failure mode: 'Delete a non-existent TodoId → TodoNotFoundError thrown by Repository.'",
+          "created_at": "2026-05-20T19:02:44.162471Z",
+          "retry_count": 0,
+          "agent_handle": {
+            "id": "hyperloop/spec/ca029b4be9363685cac98b934375b4472b229ec4/task/8"
+          },
+          "workspace_id": "task/ca029b4be9363685cac98b934375b4472b229ec4/8",
+          "status": "InProgress",
+          "events": [
+            {
+              "type": "Normal",
+              "reason": "TaskDispatched",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:02:48.287761Z",
+              "last_timestamp": "2026-05-20T19:02:48.287761Z",
+              "message": "Dispatched (attempt 1)"
+            }
+          ]
         }
       ],
       "events": [
         {
           "type": "Normal",
           "reason": "DecompositionCompleted",
-          "count": 1,
+          "count": 2,
           "first_timestamp": "2026-05-20T18:54:38.326553Z",
-          "last_timestamp": "2026-05-20T18:54:38.326553Z",
-          "message": "5 tasks created"
+          "last_timestamp": "2026-05-20T19:02:44.162711Z",
+          "message": "3 tasks created"
         },
         {
           "type": "Warning",
@@ -218,5 +293,5 @@
     }
   ],
   "events": [],
-  "task_id_counter": 5
+  "task_id_counter": 8
 }
