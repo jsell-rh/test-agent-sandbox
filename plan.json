@@ -4,13 +4,15 @@
       "path": "specs/domain-model.spec.md",
       "blob_sha": "ca029b4be9363685cac98b934375b4472b229ec4",
       "created_at": "2026-05-20T18:52:37.335879Z",
-      "status": "Reconciling",
+      "status": "Verifying",
       "superseded": false,
       "reconciliation_attempts": 1,
       "integration_attempts": 0,
       "redecomposition_count": 0,
       "verification_crash_count": 0,
-      "verification_handle": null,
+      "verification_handle": {
+        "id": "hyperloop/spec/ca029b4be9363685cac98b934375b4472b229ec4/verifier"
+      },
       "delivery_workspace_id": "delivery/ca029b4be9363685cac98b934375b4472b229ec4",
       "integration_summary": null,
       "integration_id": null,
@@ -86,11 +88,9 @@
           "description": "Create tests/domain/test_todo.py covering all Todo aggregate TDD cases: Todo.create() returns status=active, assigns non-null TodoId, emits exactly one TodoCreated event, raises InvalidTitleError on blank title; todo.complete() transitions active->completed and emits TodoCompleted, idempotent on already-completed (no event); todo.reopen() transitions completed->active and emits TodoReopened, idempotent on already-active (no event); todo.updateTitle() updates title and emits TodoTitleUpdated, raises InvalidTitleError on invalid new title; failure modes: whitespace title update leaves original title unchanged, complete already-completed produces no duplicate event. All tests use domain objects directly with no persistence or HTTP.",
           "created_at": "2026-05-20T19:02:44.162462Z",
           "retry_count": 0,
-          "agent_handle": {
-            "id": "hyperloop/spec/ca029b4be9363685cac98b934375b4472b229ec4/task/7"
-          },
+          "agent_handle": null,
           "workspace_id": "task/ca029b4be9363685cac98b934375b4472b229ec4/7",
-          "status": "InProgress",
+          "status": "Complete",
           "events": [
             {
               "type": "Normal",
@@ -99,6 +99,14 @@
               "first_timestamp": "2026-05-20T19:02:46.252038Z",
               "last_timestamp": "2026-05-20T19:02:46.252038Z",
               "message": "Dispatched (attempt 1)"
+            },
+            {
+              "type": "Normal",
+              "reason": "TaskCompleted",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:11:52.381758Z",
+              "last_timestamp": "2026-05-20T19:11:52.381758Z",
+              "message": "Task completed and merged"
             }
           ]
         },
@@ -111,11 +119,9 @@
           "description": "Update SQLiteTodoRepository.delete() in src/todo/persistence/repository.py to raise TodoNotFoundError when the given TodoId does not exist in the database (currently a silent no-op). Remove or invert the existing test_delete_non_existent_id_does_not_raise test in tests/persistence/test_repository.py and replace it with a test that asserts TodoNotFoundError is raised for an unknown TodoId. This satisfies the spec failure mode: 'Delete a non-existent TodoId → TodoNotFoundError thrown by Repository.'",
           "created_at": "2026-05-20T19:02:44.162471Z",
           "retry_count": 0,
-          "agent_handle": {
-            "id": "hyperloop/spec/ca029b4be9363685cac98b934375b4472b229ec4/task/8"
-          },
+          "agent_handle": null,
           "workspace_id": "task/ca029b4be9363685cac98b934375b4472b229ec4/8",
-          "status": "InProgress",
+          "status": "Complete",
           "events": [
             {
               "type": "Normal",
@@ -124,6 +130,14 @@
               "first_timestamp": "2026-05-20T19:02:48.287761Z",
               "last_timestamp": "2026-05-20T19:02:48.287761Z",
               "message": "Dispatched (attempt 1)"
+            },
+            {
+              "type": "Normal",
+              "reason": "TaskCompleted",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:11:54.603093Z",
+              "last_timestamp": "2026-05-20T19:11:54.603093Z",
+              "message": "Task completed and merged"
             }
           ]
         }
@@ -204,11 +218,9 @@
           "description": "Write API-level tests for every endpoint per the interface.spec.md TDD Plan (API section). Use an in-memory SQLite database (DATABASE_PATH=:memory:) for test isolation. Required test scenarios: GET /api/todos returns empty list and zero counts when no todos exist; filter=active excludes completed from list but counts reflect all; filter=completed excludes active; invalid filter value returns 400 BAD_REQUEST. POST /api/todos with valid title returns 201 with full resource including UUID id; empty title returns 422 with error=INVALID_TITLE. PATCH /api/todos/:id: status=completed marks active todo completed; status=active reopens; status=completed on already-completed returns 200 (idempotent); unknown id returns 404; invalid title returns 422. DELETE /api/todos/:id: existing todo returns 204; unknown id returns 404. DELETE /api/todos?status=completed: deletes all completed and returns correct deletedCount; zero completed returns 200 with deletedCount=0.",
           "created_at": "2026-05-20T18:54:38.326218Z",
           "retry_count": 0,
-          "agent_handle": {
-            "id": "hyperloop/spec/354fe48970dcbb64ef64254d106bdace06e5ee37/task/3"
-          },
+          "agent_handle": null,
           "workspace_id": "task/354fe48970dcbb64ef64254d106bdace06e5ee37/3",
-          "status": "InProgress",
+          "status": "Complete",
           "events": [
             {
               "type": "Normal",
@@ -217,6 +229,14 @@
               "first_timestamp": "2026-05-20T19:05:01.768741Z",
               "last_timestamp": "2026-05-20T19:05:01.768741Z",
               "message": "Dispatched (attempt 1)"
+            },
+            {
+              "type": "Normal",
+              "reason": "TaskCompleted",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:11:56.836482Z",
+              "last_timestamp": "2026-05-20T19:11:56.836482Z",
+              "message": "Task completed and merged"
             }
           ]
         },
