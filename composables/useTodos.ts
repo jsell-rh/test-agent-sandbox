@@ -37,12 +37,21 @@ export const useTodos = () => {
 
   /** Create a new todo. On success the new item is prepended to todos[]. */
   const createTodo = async (title: string): Promise<void> => {
-    const todo = await $fetch<Todo>('/api/todos', {
-      method: 'POST',
-      body: { title },
-    })
-    todos.value = [todo, ...todos.value]
-    counts.value = { ...counts.value, all: counts.value.all + 1, active: counts.value.active + 1 }
+    try {
+      const todo = await $fetch<Todo>('/api/todos', {
+        method: 'POST',
+        body: { title },
+      })
+      todos.value = [todo, ...todos.value]
+      counts.value = { ...counts.value, all: counts.value.all + 1, active: counts.value.active + 1 }
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error
+          ? error.message
+          : (error as { data?: { message?: string } }).data?.message ?? 'Failed to create todo'
+      addError(msg)
+      throw error
+    }
   }
 
   /**
