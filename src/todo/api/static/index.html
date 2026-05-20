@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>todos</title>
+  <style>
+    /* ---- Reset & base ---- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      background: #f5f5f5;
+      color: #4d4d4d;
+      min-height: 100vh;
+    }
+
+    /* ---- Layout ---- */
+    .app {
+      max-width: 550px;
+      margin: 40px auto 0;
+    }
+
+    h1 {
+      font-size: 80px;
+      font-weight: 200;
+      color: rgba(175, 47, 47, 0.15);
+      text-align: center;
+      user-select: none;
+    }
+
+    /* ---- Card ---- */
+    .card {
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,.2), 0 25px 50px rgba(0,0,0,.1);
+    }
+
+    /* ---- New-todo input ---- */
+    .new-todo {
+      width: 100%;
+      padding: 16px 16px 16px 60px;
+      font-size: 24px;
+      line-height: 1.4;
+      border: none;
+      outline: none;
+      color: inherit;
+    }
+    .new-todo::placeholder { color: #e6e6e6; font-style: italic; }
+
+    /* ---- Todo list ---- */
+    .todo-list { list-style: none; }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      border-top: 1px solid #ededed;
+      position: relative;
+    }
+    .todo-item:hover .delete-btn { opacity: 1; }
+
+    /* ---- Checkbox ---- */
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      padding: 15px 15px 15px 60px;
+      flex: 1;
+      cursor: pointer;
+      gap: 12px;
+    }
+    .toggle-checkbox { display: none; }
+    .toggle-visual {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #ededed;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='-10 -10 130 130'%3E%3Cpath fill='none' stroke='%23bddad5' stroke-width='11.2' d='M10,45 L31,66 L80,19'/%3E%3C/svg%3E") no-repeat center;
+      background-size: cover;
+    }
+    .todo-item.completed .toggle-visual {
+      background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='-10 -10 130 130'%3E%3Cpath fill='none' stroke='%235dc2af' stroke-width='11.2' d='M10,45 L31,66 L80,19'/%3E%3C/svg%3E");
+    }
+    .todo-title {
+      font-size: 24px;
+      line-height: 1.4;
+      flex: 1;
+      word-break: break-word;
+    }
+    .todo-item.completed .todo-title {
+      color: #d9d9d9;
+      text-decoration: line-through;
+    }
+
+    /* ---- Edit input ---- */
+    .edit-input {
+      display: none;
+      position: absolute;
+      left: 0; right: 0; top: 0; bottom: 0;
+      width: 100%;
+      padding: 13px 17px 13px 62px;
+      font-size: 24px;
+      border: 1px solid #999;
+      box-shadow: inset 0 -1px 5px 0 rgba(0,0,0,.2);
+      outline: none;
+      font-family: inherit;
+      color: inherit;
+    }
+    .todo-item.editing .edit-input { display: block; }
+    .todo-item.editing .toggle-label { display: none; }
+    .todo-item.editing .delete-btn { display: none; }
+
+    /* ---- Delete button ---- */
+    .delete-btn {
+      opacity: 0;
+      transition: opacity .2s;
+      background: none;
+      border: none;
+      font-size: 30px;
+      color: #cc9a9a;
+      cursor: pointer;
+      padding: 0 15px;
+      line-height: 40px;
+    }
+    .delete-btn:hover { color: #af5b5e; }
+
+    /* ---- Footer bar ---- */
+    .footer {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+      border-top: 1px solid #e6e6e6;
+      color: #777;
+      font-size: 14px;
+    }
+    .footer .items-left { flex: 1; }
+    .footer .filters { display: flex; gap: 4px; }
+    .footer .actions { flex: 1; text-align: right; }
+    .filter-btn {
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      padding: 3px 7px;
+      cursor: pointer;
+      color: inherit;
+      font-size: 14px;
+    }
+    .filter-btn.active { border-color: rgba(175,47,47,.2); }
+    .filter-btn:hover { border-color: rgba(175,47,47,.1); }
+    .clear-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #777;
+      font-size: 14px;
+    }
+    .clear-btn:hover { color: #333; text-decoration: underline; }
+
+    /* ---- Empty state ---- */
+    .empty-state {
+      padding: 20px;
+      text-align: center;
+      color: #aaa;
+      font-style: italic;
+      border-top: 1px solid #ededed;
+    }
+
+    /* ---- Error message ---- */
+    .error-banner {
+      background: #ffdddd;
+      border: 1px solid #ff9999;
+      border-radius: 4px;
+      padding: 10px 14px;
+      margin-top: 8px;
+      color: #c00;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+<div class="app" role="main">
+  <h1>todos</h1>
+
+  <div class="card">
+    <input
+      class="new-todo"
+      id="new-todo-input"
+      type="text"
+      placeholder="What needs to be done?"
+      aria-label="New todo title"
+      autocomplete="off"
+    />
+    <ul class="todo-list" id="todo-list" role="list" aria-label="Todo items"></ul>
+    <footer class="footer" id="footer" style="display:none" role="contentinfo">
+      <span class="items-left" id="items-left" aria-live="polite"></span>
+      <div class="filters" role="group" aria-label="Filter todos">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="active">Active</button>
+        <button class="filter-btn" data-filter="completed">Completed</button>
+      </div>
+      <div class="actions">
+        <button class="clear-btn" id="clear-btn" style="display:none">
+          Clear completed
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <div id="error-container" aria-live="assertive" aria-atomic="true"></div>
+</div>
+
+<script>
+// =============================================================================
+// Todo SPA — vanilla JavaScript, no build step required.
+// =============================================================================
+
+const API_BASE = '/api/todos';
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+let todos = [];                    // source of truth from API
+let filterCriteria = 'all';       // all | active | completed
+let editingTodoId = null;         // TodoId | null
+let errorTimerId = null;
+
+// ---------------------------------------------------------------------------
+// Optimistic-update helpers
+// ---------------------------------------------------------------------------
+function todosSnapshot() {
+  return JSON.parse(JSON.stringify(todos));
+}
+
+function restoreTodos(snapshot) {
+  todos = snapshot;
+  render();
+}
+
+// ---------------------------------------------------------------------------
+// API helpers
+// ---------------------------------------------------------------------------
+async function apiFetch(path, options = {}) {
+  const res = await fetch(API_BASE + path, {
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+    ...options,
+  });
+  return res;
+}
+
+// ---------------------------------------------------------------------------
+// Error display
+// ---------------------------------------------------------------------------
+function showError(message) {
+  const container = document.getElementById('error-container');
+  const banner = document.createElement('div');
+  banner.className = 'error-banner';
+  banner.setAttribute('role', 'alert');
+  banner.textContent = message;
+  container.appendChild(banner);
+
+  if (errorTimerId) clearTimeout(errorTimerId);
+  errorTimerId = setTimeout(() => {
+    container.innerHTML = '';
+    errorTimerId = null;
+  }, 5000);
+}
+
+// ---------------------------------------------------------------------------
+// Render
+// ---------------------------------------------------------------------------
+function filteredTodos() {
+  if (filterCriteria === 'active')    return todos.filter(t => t.status === 'active');
+  if (filterCriteria === 'completed') return todos.filter(t => t.status === 'completed');
+  return todos;
+}
+
+function render() {
+  const list = document.getElementById('todo-list');
+  const footer = document.getElementById('footer');
+  const itemsLeft = document.getElementById('items-left');
+  const clearBtn = document.getElementById('clear-btn');
+  const visible = filteredTodos();
+  const activeCount = todos.filter(t => t.status === 'active').length;
+  const completedCount = todos.filter(t => t.status === 'completed').length;
+
+  // Footer visibility
+  footer.style.display = todos.length ? '' : 'none';
+  itemsLeft.textContent = `${activeCount} item${activeCount !== 1 ? 's' : ''} left`;
+  clearBtn.style.display = completedCount > 0 ? '' : 'none';
+
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === filterCriteria);
+  });
+
+  // Todo list
+  list.innerHTML = '';
+
+  if (visible.length === 0 && todos.length > 0) {
+    const li = document.createElement('li');
+    li.className = 'empty-state';
+    const msgs = { active: 'No active todos.', completed: 'No completed todos.', all: 'No todos yet.' };
+    li.textContent = msgs[filterCriteria] || 'Nothing here.';
+    list.appendChild(li);
+    return;
+  }
+
+  visible.forEach(todo => {
+    const li = document.createElement('li');
+    li.className = 'todo-item' + (todo.status === 'completed' ? ' completed' : '') +
+                   (editingTodoId === todo.id ? ' editing' : '');
+    li.dataset.id = todo.id;
+
+    // Toggle checkbox + label
+    const label = document.createElement('label');
+    label.className = 'toggle-label';
+    label.htmlFor = `toggle-${todo.id}`;
+    label.setAttribute('aria-label', `Mark "${todo.title}" as ${todo.status === 'active' ? 'completed' : 'active'}`);
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'toggle-checkbox';
+    checkbox.id = `toggle-${todo.id}`;
+    checkbox.checked = todo.status === 'completed';
+    checkbox.setAttribute('aria-label', `Toggle ${todo.title}`);
+
+    const visual = document.createElement('span');
+    visual.className = 'toggle-visual';
+    visual.setAttribute('aria-hidden', 'true');
+
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'todo-title';
+    titleSpan.textContent = todo.title;
+
+    label.appendChild(checkbox);
+    label.appendChild(visual);
+    label.appendChild(titleSpan);
+
+    // Edit input (shown only in editing mode)
+    const editInput = document.createElement('input');
+    editInput.type = 'text';
+    editInput.className = 'edit-input';
+    editInput.value = todo.title;
+    editInput.setAttribute('aria-label', `Edit todo: ${todo.title}`);
+    if (editingTodoId === todo.id) {
+      // Focus next tick to avoid event conflicts
+      setTimeout(() => { editInput.focus(); editInput.select(); }, 0);
+    }
+
+    // Delete button
+    const delBtn = document.createElement('button');
+    delBtn.className = 'delete-btn';
+    delBtn.innerHTML = '&#x2715;';
+    delBtn.setAttribute('aria-label', `Delete "${todo.title}"`);
+    delBtn.title = 'Delete';
+
+    li.appendChild(label);
+    li.appendChild(editInput);
+    li.appendChild(delBtn);
+    list.appendChild(li);
+
+    // ---- Event listeners ----
+
+    // Toggle status (optimistic update)
+    checkbox.addEventListener('change', async () => {
+      const snapshot = todosSnapshot();
+      const newStatus = todo.status === 'active' ? 'completed' : 'active';
+      // Optimistic update
+      const idx = todos.findIndex(t => t.id === todo.id);
+      if (idx !== -1) { todos[idx] = { ...todos[idx], status: newStatus }; }
+      render();
+
+      const res = await apiFetch(`/${todo.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        restoreTodos(snapshot);
+        const data = await res.json().catch(() => ({}));
+        showError(data.message || 'Failed to update todo.');
+      } else {
+        const updated = await res.json();
+        const i = todos.findIndex(t => t.id === todo.id);
+        if (i !== -1) { todos[i] = updated; }
+        render();
+      }
+    });
+
+    // Double-click to enter edit mode
+    titleSpan.addEventListener('dblclick', () => {
+      editingTodoId = todo.id;
+      render();
+    });
+
+    // Edit input keyboard / blur handling
+    editInput.addEventListener('keydown', async (e) => {
+      if (e.key === 'Escape') {
+        editingTodoId = null;
+        render();
+      } else if (e.key === 'Enter') {
+        await submitEdit(todo, editInput.value.trim());
+      }
+    });
+    editInput.addEventListener('blur', async (e) => {
+      // Only submit on blur if we are still in edit mode for this todo
+      if (editingTodoId === todo.id) {
+        await submitEdit(todo, editInput.value.trim());
+      }
+    });
+
+    // Delete button (optimistic update)
+    delBtn.addEventListener('click', async () => {
+      const snapshot = todosSnapshot();
+      // Optimistic remove
+      todos = todos.filter(t => t.id !== todo.id);
+      render();
+
+      const res = await apiFetch(`/${todo.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        restoreTodos(snapshot);
+        const data = await res.json().catch(() => ({}));
+        showError(data.message || 'Failed to delete todo.');
+      }
+    });
+  });
+}
+
+// Submit an inline edit: empty title -> delete; otherwise -> PATCH title
+async function submitEdit(todo, newTitle) {
+  if (editingTodoId !== todo.id) return; // already resolved
+
+  if (newTitle === '') {
+    // Empty title -> delete
+    editingTodoId = null;
+    todos = todos.filter(t => t.id !== todo.id);
+    render();
+    const res = await apiFetch(`/${todo.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showError(data.message || 'Failed to delete todo.');
+      await loadTodos(); // re-sync from server
+    }
+    return;
+  }
+
+  if (newTitle === todo.title) {
+    editingTodoId = null;
+    render();
+    return;
+  }
+
+  editingTodoId = null;
+  const idx = todos.findIndex(t => t.id === todo.id);
+  const snapshot = todosSnapshot();
+  if (idx !== -1) { todos[idx] = { ...todos[idx], title: newTitle }; }
+  render();
+
+  const res = await apiFetch(`/${todo.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title: newTitle }),
+  });
+  if (!res.ok) {
+    restoreTodos(snapshot);
+    const data = await res.json().catch(() => ({}));
+    showError(data.message || 'Failed to update title.');
+  } else {
+    const updated = await res.json();
+    const i = todos.findIndex(t => t.id === todo.id);
+    if (i !== -1) { todos[i] = updated; }
+    render();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Initialisation & global event listeners
+// ---------------------------------------------------------------------------
+
+// New todo input
+document.getElementById('new-todo-input').addEventListener('keydown', async (e) => {
+  if (e.key === 'Escape') {
+    e.target.value = '';
+    return;
+  }
+  if (e.key !== 'Enter') return;
+
+  const title = e.target.value.trim();
+  if (!title) return;
+
+  const res = await apiFetch('', {
+    method: 'POST',
+    body: JSON.stringify({ title }),
+  });
+  if (res.ok) {
+    const created = await res.json();
+    todos.unshift(created);   // prepend (newest first)
+    e.target.value = '';
+    render();
+  } else {
+    const data = await res.json().catch(() => ({}));
+    showError(data.message || 'Failed to create todo.');
+  }
+});
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    filterCriteria = btn.dataset.filter;
+    render();
+  });
+});
+
+// Clear completed
+document.getElementById('clear-btn').addEventListener('click', async () => {
+  const res = await apiFetch('?status=completed', { method: 'DELETE' });
+  if (res.ok) {
+    todos = todos.filter(t => t.status !== 'completed');
+    render();
+  } else {
+    const data = await res.json().catch(() => ({}));
+    showError(data.message || 'Failed to clear completed todos.');
+  }
+});
+
+// Initial load
+async function loadTodos() {
+  const res = await apiFetch('');
+  if (res.ok) {
+    const data = await res.json();
+    // API returns newest-first; keep that order
+    todos = data.todos;
+    render();
+  } else {
+    showError('Failed to load todos.');
+  }
+}
+
+loadTodos();
+</script>
+</body>
+</html>
