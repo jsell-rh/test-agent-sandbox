@@ -198,10 +198,21 @@
           "description": "Write API-level tests for every endpoint per the interface.spec.md TDD Plan (API section). Use an in-memory SQLite database (DATABASE_PATH=:memory:) for test isolation. Required test scenarios: GET /api/todos returns empty list and zero counts when no todos exist; filter=active excludes completed from list but counts reflect all; filter=completed excludes active; invalid filter value returns 400 BAD_REQUEST. POST /api/todos with valid title returns 201 with full resource including UUID id; empty title returns 422 with error=INVALID_TITLE. PATCH /api/todos/:id: status=completed marks active todo completed; status=active reopens; status=completed on already-completed returns 200 (idempotent); unknown id returns 404; invalid title returns 422. DELETE /api/todos/:id: existing todo returns 204; unknown id returns 404. DELETE /api/todos?status=completed: deletes all completed and returns correct deletedCount; zero completed returns 200 with deletedCount=0.",
           "created_at": "2026-05-20T18:54:38.326218Z",
           "retry_count": 0,
-          "agent_handle": null,
-          "workspace_id": null,
-          "status": "Backlog",
-          "events": []
+          "agent_handle": {
+            "id": "hyperloop/spec/354fe48970dcbb64ef64254d106bdace06e5ee37/task/3"
+          },
+          "workspace_id": "task/354fe48970dcbb64ef64254d106bdace06e5ee37/3",
+          "status": "InProgress",
+          "events": [
+            {
+              "type": "Normal",
+              "reason": "TaskDispatched",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:05:01.768741Z",
+              "last_timestamp": "2026-05-20T19:05:01.768741Z",
+              "message": "Dispatched (attempt 1)"
+            }
+          ]
         },
         {
           "id": 4,
@@ -214,10 +225,21 @@
           "description": "Build the single-page browser application defined in interface.spec.md UI Application Layer section. No full-page reloads after initial load. Required components: Header (title 'todos'); New Todo Input (placeholder 'What needs to be done?', Enter key calls POST /api/todos, clears on success); Todo List (ordered createdAt descending, newest first); Filter Bar (All/Active/Completed tabs, active tab highlighted, client-side filter over todos[]); Footer Bar (visible only when at least one todo exists, showing '{N} item(s) left' active count, filter tabs, and 'Clear completed' button visible only when completedCount > 0); Empty State message when filtered list is empty; Todo Item Component (checkbox toggles status via PATCH, title double-click enters edit mode, delete button visible on hover calls DELETE). Edit mode: input pre-filled with current title, Enter or blur submits PATCH, Escape cancels, empty string submission calls DELETE. State machine: FilterCriteria, editingTodoId, todos[] as source of truth from API. Non-functional: optimistic UI for toggle and delete with rollback on API error; full list loaded on page load; accessibility labels; keyboard navigation; inline API error messages auto-dismissed after 5s.",
           "created_at": "2026-05-20T18:54:38.326227Z",
           "retry_count": 0,
-          "agent_handle": null,
-          "workspace_id": null,
-          "status": "Backlog",
-          "events": []
+          "agent_handle": {
+            "id": "hyperloop/spec/354fe48970dcbb64ef64254d106bdace06e5ee37/task/4"
+          },
+          "workspace_id": "task/354fe48970dcbb64ef64254d106bdace06e5ee37/4",
+          "status": "InProgress",
+          "events": [
+            {
+              "type": "Normal",
+              "reason": "TaskDispatched",
+              "count": 1,
+              "first_timestamp": "2026-05-20T19:05:02.951472Z",
+              "last_timestamp": "2026-05-20T19:05:02.951472Z",
+              "message": "Dispatched (attempt 1)"
+            }
+          ]
         },
         {
           "id": 5,
