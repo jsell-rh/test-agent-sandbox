@@ -195,7 +195,7 @@
       "path": "specs/interface.spec.md",
       "blob_sha": "354fe48970dcbb64ef64254d106bdace06e5ee37",
       "created_at": "2026-05-20T18:52:37.335955Z",
-      "status": "Verifying",
+      "status": "PendingIntegration",
       "superseded": false,
       "reconciliation_attempts": 0,
       "integration_attempts": 1,
@@ -203,8 +203,11 @@
       "verification_crash_count": 0,
       "verification_handle": null,
       "delivery_workspace_id": "delivery/354fe48970dcbb64ef64254d106bdace06e5ee37",
-      "integration_summary": null,
-      "integration_id": null,
+      "integration_summary": {
+        "title": "feat: implement TODO app REST API and single-page UI with full test coverage",
+        "body": "## Summary\n\nCompletes the full application layer for the TODO app as defined in `interface.spec.md`. This PR adds the HTTP API, the browser SPA, and all associated tests on top of the previously merged domain model and persistence layer.\n\n### What changed\n\n**REST API (`rest-api-layer`)**\n- FastAPI application mounted at `/api/todos` with six endpoints: `GET` (list + filter), `POST` (create), `GET /:id`, `PATCH /:id` (partial update of title and/or status), `DELETE /:id`, and `DELETE ?status=completed` (bulk clear).\n- Query-parameter filtering (`all` | `active` | `completed`); counts object always reflects *all* todos regardless of active filter.\n- Domain commands wired correctly: `PATCH status=completed` → `todo.complete()`, `status=active` → `todo.reopen()`, `title` → `todo.update_title()`.\n- Uniform error envelope `{error, message}` for every 4xx/5xx response; generic 500 handler emits `INTERNAL_ERROR`.\n- `SQLiteTodoRepository` injected via dependency injection; migrations run on startup before the first request.\n\n**Browser SPA (`ui-spa`)**\n- Single-page app served at `GET /`; no full-page reloads after initial load.\n- Components: Header, New Todo Input (Enter → POST, Escape clears), Todo List (newest-first order), Filter Bar (All / Active / Completed — client-side, no extra requests), Footer Bar (active count, filter tabs, \"Clear completed\"), Empty State, and Todo Item (checkbox, double-click edit, hover delete).\n- Edit mode: pre-filled input, Enter/blur → PATCH, Escape → cancel, empty string → DELETE.\n- Optimistic UI for toggle and delete with rollback on API error.\n- Accessibility: `label[htmlFor]` on checkboxes, `aria-label` on edit input, `aria-live` on error container.\n- Inline error banners (`role=alert`) auto-dismissed after 5 s.\n\n### Test coverage (127 tests total — all passing)\n\n| Suite | Count | Notes |\n|---|---|---|\n| Domain + persistence | 57 | Carried from previous PRs |\n| API (pytest, `:memory:` SQLite) | 39 | Every endpoint and error path in the TDD plan |\n| UI (Playwright) | 31 | Interaction flows, optimistic rollback, offline failure modes |\n\n### Why\n\nThis is the application-layer slice of the vertical feature. The domain rules (title validation, status transitions, idempotent complete) remain exclusively in the `Todo` aggregate; the API and UI contain no business logic — they translate external representations to/from domain commands and query results."
+      },
+      "integration_id": "https://github.com/jsell-rh/test-agent-sandbox/pull/67",
       "tasks": [
         {
           "id": 2,
@@ -361,6 +364,14 @@
           "first_timestamp": "2026-05-20T19:40:56.603590Z",
           "last_timestamp": "2026-05-20T19:40:56.603590Z",
           "message": "Expecting ',' delimiter: line 1 column 1821 (char 1820)"
+        },
+        {
+          "type": "Normal",
+          "reason": "IntegrationSubmitted",
+          "count": 1,
+          "first_timestamp": "2026-05-20T19:42:10.839516Z",
+          "last_timestamp": "2026-05-20T19:42:10.839516Z",
+          "message": "Integration submitted: https://github.com/jsell-rh/test-agent-sandbox/pull/67"
         }
       ]
     },
