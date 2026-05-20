@@ -1,5 +1,194 @@
 {
-  "spec_plans": [],
+  "spec_plans": [
+    {
+      "path": "specs/domain-model.spec.md",
+      "blob_sha": "ca029b4be9363685cac98b934375b4472b229ec4",
+      "created_at": "2026-05-20T18:52:37.335879Z",
+      "status": "Verifying",
+      "superseded": false,
+      "reconciliation_attempts": 0,
+      "integration_attempts": 0,
+      "redecomposition_count": 0,
+      "verification_crash_count": 0,
+      "verification_handle": {
+        "id": "hyperloop/spec/ca029b4be9363685cac98b934375b4472b229ec4/verifier"
+      },
+      "delivery_workspace_id": "delivery/ca029b4be9363685cac98b934375b4472b229ec4",
+      "integration_summary": null,
+      "integration_id": null,
+      "tasks": [
+        {
+          "id": 1,
+          "depends_on": [],
+          "spec_path": "specs/domain-model.spec.md",
+          "spec_blob_sha": "ca029b4be9363685cac98b934375b4472b229ec4",
+          "name": "domain-unit-tests",
+          "description": "Write TDD unit tests for the domain layer covering all cases in the domain-model.spec.md TDD Plan. tests/domain/ currently contains only __init__.py. Required test classes: TodoTitle invariants (blank raises InvalidTitleError, whitespace-only raises, 500-char valid, 501-char raises, leading/trailing whitespace trimmed before validation); Todo.create() (returns status=active, assigns non-null TodoId, emits exactly one TodoCreated event, raises InvalidTitleError on blank title); todo.complete() (active->completed emits TodoCompleted; already-completed is idempotent no event); todo.reopen() (completed->active emits TodoReopened; already-active is idempotent no event); todo.updateTitle() (updates title emits TodoTitleUpdated, raises InvalidTitleError on invalid new title). All tests use the domain objects directly — no persistence, no HTTP.",
+          "created_at": "2026-05-20T18:54:38.326178Z",
+          "retry_count": 0,
+          "agent_handle": null,
+          "workspace_id": "task/ca029b4be9363685cac98b934375b4472b229ec4/1",
+          "status": "Complete",
+          "events": [
+            {
+              "type": "Normal",
+              "reason": "TaskDispatched",
+              "count": 1,
+              "first_timestamp": "2026-05-20T18:54:40.407033Z",
+              "last_timestamp": "2026-05-20T18:54:40.407033Z",
+              "message": "Dispatched (attempt 1)"
+            },
+            {
+              "type": "Normal",
+              "reason": "TaskCompleted",
+              "count": 1,
+              "first_timestamp": "2026-05-20T18:57:11.326086Z",
+              "last_timestamp": "2026-05-20T18:57:11.326086Z",
+              "message": "Task completed and merged"
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "type": "Normal",
+          "reason": "DecompositionCompleted",
+          "count": 1,
+          "first_timestamp": "2026-05-20T18:54:38.326553Z",
+          "last_timestamp": "2026-05-20T18:54:38.326553Z",
+          "message": "5 tasks created"
+        }
+      ]
+    },
+    {
+      "path": "specs/interface.spec.md",
+      "blob_sha": "354fe48970dcbb64ef64254d106bdace06e5ee37",
+      "created_at": "2026-05-20T18:52:37.335955Z",
+      "status": "Reconciling",
+      "superseded": false,
+      "reconciliation_attempts": 0,
+      "integration_attempts": 0,
+      "redecomposition_count": 0,
+      "verification_crash_count": 0,
+      "verification_handle": null,
+      "delivery_workspace_id": "delivery/354fe48970dcbb64ef64254d106bdace06e5ee37",
+      "integration_summary": null,
+      "integration_id": null,
+      "tasks": [
+        {
+          "id": 2,
+          "depends_on": [],
+          "spec_path": "specs/interface.spec.md",
+          "spec_blob_sha": "354fe48970dcbb64ef64254d106bdace06e5ee37",
+          "name": "rest-api-layer",
+          "description": "Implement the REST/JSON API defined in interface.spec.md. Create an HTTP application (e.g. FastAPI or similar) with base path /api/todos. Endpoints required: GET /api/todos (with optional ?filter=all|active|completed query param, returning todos[] and counts{}); POST /api/todos (201 on success, 422 with INVALID_TITLE error envelope on InvalidTitleError); GET /api/todos/:id (200 or 404 TODO_NOT_FOUND); PATCH /api/todos/:id (partial update of title and/or status, mapping status to todo.complete()/todo.reopen(), returning 200/404/422); DELETE /api/todos/:id (204 or 404); DELETE /api/todos?status=completed (bulk delete completed, returns {deletedCount}). All 4xx/5xx must use the error envelope {error, message}. Wire up SQLiteTodoRepository via dependency injection. Run migrations on startup before accepting requests.",
+          "created_at": "2026-05-20T18:54:38.326202Z",
+          "retry_count": 0,
+          "agent_handle": {
+            "id": "hyperloop/spec/354fe48970dcbb64ef64254d106bdace06e5ee37/task/2"
+          },
+          "workspace_id": "task/354fe48970dcbb64ef64254d106bdace06e5ee37/2",
+          "status": "InProgress",
+          "events": [
+            {
+              "type": "Normal",
+              "reason": "TaskDispatched",
+              "count": 1,
+              "first_timestamp": "2026-05-20T18:54:42.487706Z",
+              "last_timestamp": "2026-05-20T18:54:42.487706Z",
+              "message": "Dispatched (attempt 1)"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "depends_on": [
+            2
+          ],
+          "spec_path": "specs/interface.spec.md",
+          "spec_blob_sha": "354fe48970dcbb64ef64254d106bdace06e5ee37",
+          "name": "rest-api-tests",
+          "description": "Write API-level tests for every endpoint per the interface.spec.md TDD Plan (API section). Use an in-memory SQLite database (DATABASE_PATH=:memory:) for test isolation. Required test scenarios: GET /api/todos returns empty list and zero counts when no todos exist; filter=active excludes completed from list but counts reflect all; filter=completed excludes active; invalid filter value returns 400 BAD_REQUEST. POST /api/todos with valid title returns 201 with full resource including UUID id; empty title returns 422 with error=INVALID_TITLE. PATCH /api/todos/:id: status=completed marks active todo completed; status=active reopens; status=completed on already-completed returns 200 (idempotent); unknown id returns 404; invalid title returns 422. DELETE /api/todos/:id: existing todo returns 204; unknown id returns 404. DELETE /api/todos?status=completed: deletes all completed and returns correct deletedCount; zero completed returns 200 with deletedCount=0.",
+          "created_at": "2026-05-20T18:54:38.326218Z",
+          "retry_count": 0,
+          "agent_handle": null,
+          "workspace_id": null,
+          "status": "Backlog",
+          "events": []
+        },
+        {
+          "id": 4,
+          "depends_on": [
+            2
+          ],
+          "spec_path": "specs/interface.spec.md",
+          "spec_blob_sha": "354fe48970dcbb64ef64254d106bdace06e5ee37",
+          "name": "ui-spa",
+          "description": "Build the single-page browser application defined in interface.spec.md UI Application Layer section. No full-page reloads after initial load. Required components: Header (title 'todos'); New Todo Input (placeholder 'What needs to be done?', Enter key calls POST /api/todos, clears on success); Todo List (ordered createdAt descending, newest first); Filter Bar (All/Active/Completed tabs, active tab highlighted, client-side filter over todos[]); Footer Bar (visible only when at least one todo exists, showing '{N} item(s) left' active count, filter tabs, and 'Clear completed' button visible only when completedCount > 0); Empty State message when filtered list is empty; Todo Item Component (checkbox toggles status via PATCH, title double-click enters edit mode, delete button visible on hover calls DELETE). Edit mode: input pre-filled with current title, Enter or blur submits PATCH, Escape cancels, empty string submission calls DELETE. State machine: FilterCriteria, editingTodoId, todos[] as source of truth from API. Non-functional: optimistic UI for toggle and delete with rollback on API error; full list loaded on page load; accessibility labels; keyboard navigation; inline API error messages auto-dismissed after 5s.",
+          "created_at": "2026-05-20T18:54:38.326227Z",
+          "retry_count": 0,
+          "agent_handle": null,
+          "workspace_id": null,
+          "status": "Backlog",
+          "events": []
+        },
+        {
+          "id": 5,
+          "depends_on": [
+            4
+          ],
+          "spec_path": "specs/interface.spec.md",
+          "spec_blob_sha": "354fe48970dcbb64ef64254d106bdace06e5ee37",
+          "name": "ui-tests",
+          "description": "Write UI tests per interface.spec.md TDD Plan (UI section). Required test scenarios: entering a title and pressing Enter creates a new item at the top of the list; pressing Escape in new-todo input clears without creating; double-clicking a title enters edit mode for only that item; pressing Escape in edit mode restores original title without API call; submitting blank title in edit mode deletes the item; 'Clear completed' button only visible when completedCount > 0; '{N} item(s) left' reflects current active count after toggling; filter tabs correctly show/hide items without an additional network request. Failure modes: API 500 on create leaves input unchanged and shows error; API 500 on toggle reverts checkbox (optimistic rollback); offline state shows error and keeps previously loaded list visible.",
+          "created_at": "2026-05-20T18:54:38.326236Z",
+          "retry_count": 0,
+          "agent_handle": null,
+          "workspace_id": null,
+          "status": "Backlog",
+          "events": []
+        }
+      ],
+      "events": [
+        {
+          "type": "Normal",
+          "reason": "DecompositionCompleted",
+          "count": 1,
+          "first_timestamp": "2026-05-20T18:54:38.326608Z",
+          "last_timestamp": "2026-05-20T18:54:38.326608Z",
+          "message": "5 tasks created"
+        }
+      ]
+    },
+    {
+      "path": "specs/persistence.spec.md",
+      "blob_sha": "ec2444e0637708deb0f6f7ec83cfb4bf82252503",
+      "created_at": "2026-05-20T18:52:37.336006Z",
+      "status": "Verifying",
+      "superseded": false,
+      "reconciliation_attempts": 0,
+      "integration_attempts": 0,
+      "redecomposition_count": 0,
+      "verification_crash_count": 0,
+      "verification_handle": {
+        "id": "hyperloop/spec/ec2444e0637708deb0f6f7ec83cfb4bf82252503/verifier"
+      },
+      "delivery_workspace_id": "delivery/ec2444e0637708deb0f6f7ec83cfb4bf82252503",
+      "integration_summary": null,
+      "integration_id": null,
+      "tasks": [],
+      "events": [
+        {
+          "type": "Normal",
+          "reason": "DecompositionCompleted",
+          "count": 1,
+          "first_timestamp": "2026-05-20T18:54:38.326614Z",
+          "last_timestamp": "2026-05-20T18:54:38.326614Z",
+          "message": "5 tasks created"
+        }
+      ]
+    }
+  ],
   "events": [],
-  "task_id_counter": 0
+  "task_id_counter": 5
 }
