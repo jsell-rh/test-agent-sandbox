@@ -4,19 +4,16 @@
       "path": "specs/domain-model.spec.md",
       "blob_sha": "ca029b4be9363685cac98b934375b4472b229ec4",
       "created_at": "2026-05-20T18:52:37.335879Z",
-      "status": "PendingIntegration",
+      "status": "Synced",
       "superseded": false,
       "reconciliation_attempts": 1,
-      "integration_attempts": 1,
+      "integration_attempts": 0,
       "redecomposition_count": 0,
       "verification_crash_count": 0,
       "verification_handle": null,
       "delivery_workspace_id": "delivery/ca029b4be9363685cac98b934375b4472b229ec4",
-      "integration_summary": {
-        "title": "feat: add domain TDD test suite and enforce TodoNotFoundError on delete",
-        "body": "## Summary\n\nEstablishes the complete TDD test suite for the Todo Management bounded context domain layer and closes a spec conformance gap in the SQLite repository implementation.\n\n## What Changed\n\n### New Test Modules\n- `tests/domain/test_value_objects.py` — Covers all `TodoTitle` invariants: blank string raises `InvalidTitleError`; whitespace-only string raises `InvalidTitleError`; 500-character string is accepted; 501-character string raises `InvalidTitleError`; leading/trailing whitespace is trimmed before validation.\n- `tests/domain/test_todo.py` — Covers the full `Todo` aggregate surface: `Todo.create()` assigns a non-null `TodoId`, initialises `status=active`, emits exactly one `TodoCreated` event, and rejects a blank title; `complete()` transitions `active→completed` and emits `TodoCompleted`, is idempotent on an already-completed Todo (no duplicate event); `reopen()` transitions `completed→active` and emits `TodoReopened`, is idempotent on an already-active Todo; `updateTitle()` emits `TodoTitleUpdated` and raises `InvalidTitleError` on an invalid new title, leaving the original title unchanged.\n\n### Repository Bug Fix\n- `src/todo/persistence/repository.py` — `SQLiteTodoRepository.delete()` now raises `TodoNotFoundError` when the supplied `TodoId` does not exist (was previously a silent no-op, violating the spec failure-mode contract).\n- `tests/persistence/test_repository.py` — The former `test_delete_non_existent_id_does_not_raise` test is replaced with an assertion that `TodoNotFoundError` is raised for an unknown `TodoId`.\n\n## Why\n\nThe domain model spec mandates an anti-anemic model: all business invariants live inside the `Todo` aggregate, not in application services. The test suite makes those invariants machine-verifiable and prevents future regression. The repository fix aligns the persistence layer with the spec failure mode: *Delete a non-existent TodoId → TodoNotFoundError thrown by Repository*.\n\n## Verification\n\n158/158 tests pass. Domain tests exercise the aggregate and value objects directly — no persistence layer, no HTTP transport."
-      },
-      "integration_id": "https://github.com/jsell-rh/test-agent-sandbox/pull/66",
+      "integration_summary": null,
+      "integration_id": null,
       "tasks": [
         {
           "id": 1,
@@ -183,6 +180,14 @@
           "first_timestamp": "2026-05-20T19:17:34.905546Z",
           "last_timestamp": "2026-05-20T19:17:34.905546Z",
           "message": "Integration submitted: https://github.com/jsell-rh/test-agent-sandbox/pull/66"
+        },
+        {
+          "type": "Normal",
+          "reason": "IntegrationMerged",
+          "count": 1,
+          "first_timestamp": "2026-05-20T19:18:06.832799Z",
+          "last_timestamp": "2026-05-20T19:18:06.832799Z",
+          "message": "Integrated to trunk (4 tasks)"
         }
       ]
     },
